@@ -7,7 +7,7 @@ module AbsExpr where
 
 
 
-data Expr = EAdd Expr Expr | ETerm Term
+data Expr = EAdd Expr Term | ETerm Term
   deriving (Eq, Ord, Show, Read)
 
 data Term = TMul Term Factor | TFact Factor

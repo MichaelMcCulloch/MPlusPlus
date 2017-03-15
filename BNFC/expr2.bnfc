@@ -1,4 +1,4 @@
-EAdd.Expr ::= Expr "+" Expr ;
+EAdd.Expr ::= Expr "+" Term ;
 ETerm.Expr ::= Term ;
 
 TMul.Term ::= Term "*" Factor ;

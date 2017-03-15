@@ -82,7 +82,7 @@ instance Print Double where
 
 instance Print Expr where
   prt i e = case e of
-    EAdd expr1 expr2 -> prPrec i 0 (concatD [prt 0 expr1, doc (showString "+"), prt 0 expr2])
+    EAdd expr term -> prPrec i 0 (concatD [prt 0 expr, doc (showString "+"), prt 0 term])
     ETerm term -> prPrec i 0 (concatD [prt 0 term])
 
 instance Print Term where

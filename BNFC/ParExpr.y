@@ -26,7 +26,7 @@ L_integ  { PT _ (TI $$) }
 Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
 
 Expr :: { Expr }
-Expr : Expr '+' Expr { AbsExpr.EAdd $1 $3 }
+Expr : Expr '+' Term { AbsExpr.EAdd $1 $3 }
      | Term { AbsExpr.ETerm $1 }
 Term :: { Term }
 Term : Term '*' Factor { AbsExpr.TMul $1 $3 }

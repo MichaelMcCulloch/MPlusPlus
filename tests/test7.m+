@@ -5,7 +5,7 @@ fun compare_matrix(a[][]:real,b[][]:real):bool
     { var v:bool;
       begin
         if size(a) = size(b)  && size(a[]) = size(b[])
-        then v:=true
+        then v:= true
         else  v:= false;
         return v;
        end };

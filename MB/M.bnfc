@@ -1,0 +1,155 @@
+comment "%" ;
+comment "/*" "*/" ;
+
+token CID '#'('_' | digit | letter )* ;
+token BVAL ({"false"} | {"true"});
+
+Program.  Prog ::= Block ;
+
+ProgramBlock. Block ::= Declarations ProgramBody ;
+
+Decs.   Declarations ::= Declaration ";" Declarations ;
+DecsEnd.    Declarations ::= ;
+
+DVar.     Declaration ::= VarDeclaration ;
+DFun.     Declaration ::= FunDeclaration ;
+DData.    Declaration ::= DataDeclaration ;
+
+VarDeclaration.     VarDeclaration ::= "var" VarSpecs ":" Type ;
+
+VarSpecs.   VarSpecs ::= VarSpec MoreVarSpecs ;
+
+MVSList.  MoreVarSpecs ::= "," VarSpec MoreVarSpecs ;
+MVSEnd.   MoreVarSpecs ::= ;
+
+VarSpec.    VarSpec ::= Ident ArrayDimensions ;
+
+ADList.   ArrayDimensions ::= "[" Expr "]" ArrayDimensions ;
+ADEnd.    ArrayDimensions ::= ;
+
+Tint.     Type ::= "int" ;
+Treal.    Type ::= "real" ;
+Tbool.    Type ::= "bool" ;
+Tchar.    Type ::= "char" ;
+Tuser.    Type ::= Ident ;
+
+FunctionDec.       FunDeclaration ::= "fun" Ident ParamList ":" Type "{" FunBlock "}" ;
+
+FunctionBlock.       FunBlock ::= Declarations FunBody ;
+
+ParameterList.       ParamList ::= "(" Parameters ")" ;
+
+ParametersList.  Parameters ::= BasicDeclaration MoreParameters ;
+ParametersEnd.   Parameters ::= ;
+
+MParametersList.  MoreParameters ::= "," BasicDeclaration MoreParameters ;
+MParametersEnd.   MoreParameters ::= ;
+
+BasicDeclaration.     BasicDeclaration ::= Ident BasicArrayDimensions ":" Type ;
+
+BADList.  BasicArrayDimensions ::= "[" "]" BasicArrayDimensions ;
+BADEnd.   BasicArrayDimensions ::= ;
+
+DataDeclaration.   DataDeclaration ::= "data" Ident "=" ConsDeclarations ;
+
+ConsDeclarations.  ConsDeclarations ::= ConsDecl MoreConsDecl ;
+
+MCDList.  MoreConsDecl ::= "|" ConsDecl MoreConsDecl ;
+MCDEnd.   MoreConsDecl ::= ;
+
+CTypeList.   ConsDecl ::= CID "of" TypeList ;
+CSimple.       ConsDecl ::= CID ;
+
+TList.    TypeList ::= Type MoreType ;
+
+MTList.   MoreType ::= "*" Type MoreType ;
+MTEnd.    MoreType ::= ;
+
+ProgBodyA. ProgramBody ::= "begin" ProgStmts "end" ;
+ProgBodyB.  ProgramBody ::= ProgStmts ;
+
+FunBodyA. FunBody ::= "begin" ProgStmts "return" Expr ";" "end" ;
+FunBodyB.    FunBody ::= ProgStmts "return" Expr ";" ;
+
+PSList.   ProgStmts ::= ProgStmt ";" ProgStmts ;
+PSEnd.    ProgStmts ::= ;
+
+PIf.      ProgStmt ::= "if" Expr "then" ProgStmt "else" ProgStmt ;
+PWhile.   ProgStmt ::= "while" Expr "do" ProgStmt ;
+PRead.    ProgStmt ::= "read" Location ;
+PLocation.ProgStmt ::= Location ":=" Expr ;
+PPrint.   ProgStmt ::= "print" Expr ;
+PBlock.   ProgStmt ::= "{" Block "}" ;
+PExpr.    ProgStmt ::= "case" Expr "of" "{" CaseList "}" ;
+
+Location.      Location ::= Ident ArrayDimensions ;
+
+Cases. CaseList ::= Case MoreCase ;
+
+MCList.   MoreCase ::= "|" Case MoreCase ;
+MCEnd.    MoreCase ::= ;
+
+Case.     Case ::= CID VarList "=>" ProgStmt ;
+
+VLList.   VarList ::= "(" VarList1 ")" ;
+VLEnd.    VarList ::= ;
+
+VarList.      VarList1 ::= Ident MoreVarList ;
+
+MVLList. MoreVarList ::= "," Ident MoreVarList ;
+MVLEnd.  MoreVarList ::= ;
+
+BOr.      Expr ::= Expr "||" BintTerm ;
+BTerm.     Expr ::= BintTerm ;
+
+BAnd.     BintTerm ::= BintTerm "&&" BintFactor ;
+BFactor.    BintTerm ::= BintFactor ;
+
+BNot.     BintFactor ::= "not" BintFactor ;
+BCompare.    BintFactor ::= IntExpr CompareOp IntExpr ;
+BExpr.     BintFactor ::= IntExpr ;
+
+CompEQ.       CompareOp ::= "=" ;
+CompLT.       CompareOp ::= "<" ;
+CompGT.       CompareOp ::= ">" ;
+CompLEQ.      CompareOp ::= "=<" ;
+CompGEQ.      CompareOp ::= ">=" ;
+
+IntAdd.     IntExpr ::= IntExpr Addop IntTerm ;
+IntTerm.    IntExpr ::= IntTerm ;
+
+Add.     Addop ::= "+" ;
+Sub.    Addop ::= "-" ;
+
+IntMul.     IntTerm ::= IntTerm Mulop IntFactor ;
+IntFactor.    IntTerm ::= IntFactor ;
+
+Mult.      Mulop ::= "*" ;
+Divide.      Mulop ::= "/" ;
+
+Expression.   IntFactor ::= "(" Expr ")" ;
+ListSize.   IntFactor ::= "size" "(" Ident BasicArrayDimensions ")" ;
+ToFloat.  IntFactor ::= "float" "(" Expr ")" ;
+FunFloor.  IntFactor ::= "floor" "(" Expr ")" ;
+FunCeil.   IntFactor ::= "ceil" "(" Expr ")" ;
+IDModList.     IntFactor ::= Ident ModifierList ;
+IData.    IntFactor ::= CID ConsArgumentList ;
+Integer.    IntFactor ::= Integer ;
+Real.   IntFactor ::= Double ;
+Boolean.   IntFactor ::= BVAL ;
+Character.   IntFactor ::= Char ;
+Negate.    IntFactor ::= "-" IntFactor ;
+
+FunctionCall.    ModifierList ::= FunArgumentList ;
+ArrayAccess.    ModifierList ::= ArrayDimensions ;
+
+Args.  FunArgumentList ::= "(" Arguments ")" ;
+
+DataArguments.  ConsArgumentList ::= FunArgumentList ;
+DataArgumentsss.   ConsArgumentList ::= ;
+
+AList.Arguments ::= Expr MoreArguments ;
+AEnd.Arguments ::= ;
+
+MAList.MoreArguments ::= "," Expr MoreArguments ;
+MAEnd.MoreArguments ::= ;
