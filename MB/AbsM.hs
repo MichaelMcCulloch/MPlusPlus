@@ -10,32 +10,25 @@ module AbsM where
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 newtype CID = CID String deriving (Eq, Ord, Show, Read)
 newtype BVAL = BVAL String deriving (Eq, Ord, Show, Read)
-data Prog = Program Block
+data Prog = P Block
   deriving (Eq, Ord, Show, Read)
 
-data Block = ProgramBlock Declarations ProgramBody
-  deriving (Eq, Ord, Show, Read)
-
-data Declarations = Decs Declaration Declarations | DecsEnd
+data Block = Prog [Declaration] ProgramBody
   deriving (Eq, Ord, Show, Read)
 
 data Declaration
-    = DVar VarDeclaration | DFun FunDeclaration | DData DataDeclaration
+    = VarDef VarDeclaration
+    | FunDef FunDeclaration
+    | DataDef DataDeclaration
   deriving (Eq, Ord, Show, Read)
 
-data VarDeclaration = VarDeclaration VarSpecs Type
+data VarDeclaration = VarDeclaration [VarSpec] Type
   deriving (Eq, Ord, Show, Read)
 
-data VarSpecs = VarSpecs VarSpec MoreVarSpecs
+data VarSpec = VarSpec Ident [ArrayDimension]
   deriving (Eq, Ord, Show, Read)
 
-data MoreVarSpecs = MVSList VarSpec MoreVarSpecs | MVSEnd
-  deriving (Eq, Ord, Show, Read)
-
-data VarSpec = VarSpec Ident ArrayDimensions
-  deriving (Eq, Ord, Show, Read)
-
-data ArrayDimensions = ADList Expr ArrayDimensions | ADEnd
+data ArrayDimension = ArrDim Expr
   deriving (Eq, Ord, Show, Read)
 
 data Type = Tint | Treal | Tbool | Tchar | Tuser Ident
@@ -44,52 +37,29 @@ data Type = Tint | Treal | Tbool | Tchar | Tuser Ident
 data FunDeclaration = FunctionDec Ident ParamList Type FunBlock
   deriving (Eq, Ord, Show, Read)
 
-data FunBlock = FunctionBlock Declarations FunBody
+data FunBlock = FunctionBlock [Declaration] FunBody
   deriving (Eq, Ord, Show, Read)
 
-data ParamList = ParameterList Parameters
-  deriving (Eq, Ord, Show, Read)
-
-data Parameters
-    = ParametersList BasicDeclaration MoreParameters | ParametersEnd
-  deriving (Eq, Ord, Show, Read)
-
-data MoreParameters
-    = MParametersList BasicDeclaration MoreParameters | MParametersEnd
+data ParamList = ParameterList [BasicDeclaration]
   deriving (Eq, Ord, Show, Read)
 
 data BasicDeclaration
-    = BasicDeclaration Ident BasicArrayDimensions Type
+    = BasicDeclaration Ident [BasicArrayDimension] Type
   deriving (Eq, Ord, Show, Read)
 
-data BasicArrayDimensions = BADList BasicArrayDimensions | BADEnd
+data BasicArrayDimension = BArrDim
   deriving (Eq, Ord, Show, Read)
 
-data DataDeclaration = DataDeclaration Ident ConsDeclarations
+data DataDeclaration = DataDeclaration Ident [ConsDecl]
   deriving (Eq, Ord, Show, Read)
 
-data ConsDeclarations = ConsDeclarations ConsDecl MoreConsDecl
+data ConsDecl = CTypeList CID [Type] | CSimple CID
   deriving (Eq, Ord, Show, Read)
 
-data MoreConsDecl = MCDList ConsDecl MoreConsDecl | MCDEnd
+data ProgramBody = ProgBodyA [ProgStmt] | ProgBodyB [ProgStmt]
   deriving (Eq, Ord, Show, Read)
 
-data ConsDecl = CTypeList CID TypeList | CSimple CID
-  deriving (Eq, Ord, Show, Read)
-
-data TypeList = TList Type MoreType
-  deriving (Eq, Ord, Show, Read)
-
-data MoreType = MTList Type MoreType | MTEnd
-  deriving (Eq, Ord, Show, Read)
-
-data ProgramBody = ProgBodyA ProgStmts | ProgBodyB ProgStmts
-  deriving (Eq, Ord, Show, Read)
-
-data FunBody = FunBodyA ProgStmts Expr | FunBodyB ProgStmts Expr
-  deriving (Eq, Ord, Show, Read)
-
-data ProgStmts = PSList ProgStmt ProgStmts | PSEnd
+data FunBody = FunBodyA [ProgStmt] Expr | FunBodyB [ProgStmt] Expr
   deriving (Eq, Ord, Show, Read)
 
 data ProgStmt
@@ -99,25 +69,16 @@ data ProgStmt
     | PLocation Location Expr
     | PPrint Expr
     | PBlock Block
-    | PExpr Expr CaseList
+    | PExpr Expr [Case]
   deriving (Eq, Ord, Show, Read)
 
-data Location = Location Ident ArrayDimensions
-  deriving (Eq, Ord, Show, Read)
-
-data CaseList = Cases Case MoreCase
-  deriving (Eq, Ord, Show, Read)
-
-data MoreCase = MCList Case MoreCase | MCEnd
+data Location = Location Ident [ArrayDimension]
   deriving (Eq, Ord, Show, Read)
 
 data Case = Case CID VarList ProgStmt
   deriving (Eq, Ord, Show, Read)
 
-data VarList = VLList VarList | VLEnd | VarList Ident MoreVarList
-  deriving (Eq, Ord, Show, Read)
-
-data MoreVarList = MVLList Ident MoreVarList | MVLEnd
+data VarList = VLList [Ident] | VLEnd
   deriving (Eq, Ord, Show, Read)
 
 data Expr = BOr Expr BintTerm | BTerm BintTerm
@@ -149,12 +110,12 @@ data Mulop = Mult | Divide
 
 data IntFactor
     = Expression Expr
-    | ListSize Ident BasicArrayDimensions
-    | ToFloat Expr
-    | FunFloor Expr
-    | FunCeil Expr
-    | IDModList Ident ModifierList
-    | IData CID ConsArgumentList
+    | Size Ident [BasicArrayDimension]
+    | Float Expr
+    | Floor Expr
+    | Ceil Expr
+    | ID Ident ModifierList
+    | Data CID ConsArgumentList
     | Integer Integer
     | Real Double
     | Boolean BVAL
@@ -163,19 +124,12 @@ data IntFactor
   deriving (Eq, Ord, Show, Read)
 
 data ModifierList
-    = FunctionCall FunArgumentList | ArrayAccess ArrayDimensions
+    = FunctionCall FunArgumentList | ArrayAccess [ArrayDimension]
   deriving (Eq, Ord, Show, Read)
 
-data FunArgumentList = Args Arguments
+data FunArgumentList = Args [Expr]
   deriving (Eq, Ord, Show, Read)
 
-data ConsArgumentList
-    = DataArguments FunArgumentList | DataArgumentsss
-  deriving (Eq, Ord, Show, Read)
-
-data Arguments = AList Expr MoreArguments | AEnd
-  deriving (Eq, Ord, Show, Read)
-
-data MoreArguments = MAList Expr MoreArguments | MAEnd
+data ConsArgumentList = DataArguments FunArgumentList | NoArguments
   deriving (Eq, Ord, Show, Read)
 

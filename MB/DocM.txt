@@ -53,12 +53,12 @@ The reserved words used in M are the following:
   | ``size`` | ``then`` | ``var`` | ``while``
 
 The symbols used in M are the following:
-  | ; | : | , | [
-  | ] | { | } | (
-  | ) | = | | | *
-  | := | => | || | &&
-  | < | > | =< | >=
-  | + | - | / | 
+  | : | [ | ] | {
+  | } | ( | ) | =
+  | ; | := | => | ||
+  | && | < | > | =<
+  | >= | + | - | *
+  | / | , | | | 
 
 ===Comments===
 Single-line comments begin with %.Multiple-line comments are  enclosed with /* and */.
@@ -70,65 +70,40 @@ and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
   | //Prog// | -> | //Block// 
-  | //Block// | -> | //Declarations// //ProgramBody// 
-  | //Declarations// | -> | //Declaration// ``;`` //Declarations// 
-  |  |  **|**  | **eps**
+  | //Block// | -> | //[Declaration]// //ProgramBody// 
   | //Declaration// | -> | //VarDeclaration// 
   |  |  **|**  | //FunDeclaration// 
   |  |  **|**  | //DataDeclaration// 
-  | //VarDeclaration// | -> | ``var`` //VarSpecs// ``:`` //Type// 
-  | //VarSpecs// | -> | //VarSpec// //MoreVarSpecs// 
-  | //MoreVarSpecs// | -> | ``,`` //VarSpec// //MoreVarSpecs// 
-  |  |  **|**  | **eps**
-  | //VarSpec// | -> | //Ident// //ArrayDimensions// 
-  | //ArrayDimensions// | -> | ``[`` //Expr// ``]`` //ArrayDimensions// 
-  |  |  **|**  | **eps**
+  | //VarDeclaration// | -> | ``var`` //[VarSpec]// ``:`` //Type// 
+  | //VarSpec// | -> | //Ident// //[ArrayDimension]// 
+  | //ArrayDimension// | -> | ``[`` //Expr// ``]`` 
   | //Type// | -> | ``int`` 
   |  |  **|**  | ``real`` 
   |  |  **|**  | ``bool`` 
   |  |  **|**  | ``char`` 
   |  |  **|**  | //Ident// 
   | //FunDeclaration// | -> | ``fun`` //Ident// //ParamList// ``:`` //Type// ``{`` //FunBlock// ``}`` 
-  | //FunBlock// | -> | //Declarations// //FunBody// 
-  | //ParamList// | -> | ``(`` //Parameters// ``)`` 
-  | //Parameters// | -> | //BasicDeclaration// //MoreParameters// 
-  |  |  **|**  | **eps**
-  | //MoreParameters// | -> | ``,`` //BasicDeclaration// //MoreParameters// 
-  |  |  **|**  | **eps**
-  | //BasicDeclaration// | -> | //Ident// //BasicArrayDimensions// ``:`` //Type// 
-  | //BasicArrayDimensions// | -> | ``[`` ``]`` //BasicArrayDimensions// 
-  |  |  **|**  | **eps**
-  | //DataDeclaration// | -> | ``data`` //Ident// ``=`` //ConsDeclarations// 
-  | //ConsDeclarations// | -> | //ConsDecl// //MoreConsDecl// 
-  | //MoreConsDecl// | -> | ``|`` //ConsDecl// //MoreConsDecl// 
-  |  |  **|**  | **eps**
-  | //ConsDecl// | -> | //CID// ``of`` //TypeList// 
+  | //FunBlock// | -> | //[Declaration]// //FunBody// 
+  | //ParamList// | -> | ``(`` //[BasicDeclaration]// ``)`` 
+  | //BasicDeclaration// | -> | //Ident// //[BasicArrayDimension]// ``:`` //Type// 
+  | //BasicArrayDimension// | -> | ``[`` ``]`` 
+  | //DataDeclaration// | -> | ``data`` //Ident// ``=`` //[ConsDecl]// 
+  | //ConsDecl// | -> | //CID// ``of`` //[Type]// 
   |  |  **|**  | //CID// 
-  | //TypeList// | -> | //Type// //MoreType// 
-  | //MoreType// | -> | ``*`` //Type// //MoreType// 
-  |  |  **|**  | **eps**
-  | //ProgramBody// | -> | ``begin`` //ProgStmts// ``end`` 
-  |  |  **|**  | //ProgStmts// 
-  | //FunBody// | -> | ``begin`` //ProgStmts// ``return`` //Expr// ``;`` ``end`` 
-  |  |  **|**  | //ProgStmts// ``return`` //Expr// ``;`` 
-  | //ProgStmts// | -> | //ProgStmt// ``;`` //ProgStmts// 
-  |  |  **|**  | **eps**
+  | //ProgramBody// | -> | ``begin`` //[ProgStmt]// ``end`` 
+  |  |  **|**  | //[ProgStmt]// 
+  | //FunBody// | -> | ``begin`` //[ProgStmt]// ``return`` //Expr// ``;`` ``end`` 
+  |  |  **|**  | //[ProgStmt]// ``return`` //Expr// ``;`` 
   | //ProgStmt// | -> | ``if`` //Expr// ``then`` //ProgStmt// ``else`` //ProgStmt// 
   |  |  **|**  | ``while`` //Expr// ``do`` //ProgStmt// 
   |  |  **|**  | ``read`` //Location// 
   |  |  **|**  | //Location// ``:=`` //Expr// 
   |  |  **|**  | ``print`` //Expr// 
   |  |  **|**  | ``{`` //Block// ``}`` 
-  |  |  **|**  | ``case`` //Expr// ``of`` ``{`` //CaseList// ``}`` 
-  | //Location// | -> | //Ident// //ArrayDimensions// 
-  | //CaseList// | -> | //Case// //MoreCase// 
-  | //MoreCase// | -> | ``|`` //Case// //MoreCase// 
-  |  |  **|**  | **eps**
+  |  |  **|**  | ``case`` //Expr// ``of`` ``{`` //[Case]// ``}`` 
+  | //Location// | -> | //Ident// //[ArrayDimension]// 
   | //Case// | -> | //CID// //VarList// ``=>`` //ProgStmt// 
-  | //VarList// | -> | ``(`` //VarList1// ``)`` 
-  |  |  **|**  | **eps**
-  | //VarList1// | -> | //Ident// //MoreVarList// 
-  | //MoreVarList// | -> | ``,`` //Ident// //MoreVarList// 
+  | //VarList// | -> | ``(`` //[Ident]// ``)`` 
   |  |  **|**  | **eps**
   | //Expr// | -> | //Expr// ``||`` //BintTerm// 
   |  |  **|**  | //BintTerm// 
@@ -151,7 +126,7 @@ All other symbols are terminals.
   | //Mulop// | -> | ``*`` 
   |  |  **|**  | ``/`` 
   | //IntFactor// | -> | ``(`` //Expr// ``)`` 
-  |  |  **|**  | ``size`` ``(`` //Ident// //BasicArrayDimensions// ``)`` 
+  |  |  **|**  | ``size`` ``(`` //Ident// //[BasicArrayDimension]// ``)`` 
   |  |  **|**  | ``float`` ``(`` //Expr// ``)`` 
   |  |  **|**  | ``floor`` ``(`` //Expr// ``)`` 
   |  |  **|**  | ``ceil`` ``(`` //Expr// ``)`` 
@@ -163,13 +138,34 @@ All other symbols are terminals.
   |  |  **|**  | //Char// 
   |  |  **|**  | ``-`` //IntFactor// 
   | //ModifierList// | -> | //FunArgumentList// 
-  |  |  **|**  | //ArrayDimensions// 
-  | //FunArgumentList// | -> | ``(`` //Arguments// ``)`` 
+  |  |  **|**  | //[ArrayDimension]// 
+  | //FunArgumentList// | -> | ``(`` //[Expr]// ``)`` 
   | //ConsArgumentList// | -> | //FunArgumentList// 
   |  |  **|**  | **eps**
-  | //Arguments// | -> | //Expr// //MoreArguments// 
-  |  |  **|**  | **eps**
-  | //MoreArguments// | -> | ``,`` //Expr// //MoreArguments// 
-  |  |  **|**  | **eps**
+  | //[VarSpec]// | -> | **eps**
+  |  |  **|**  | //VarSpec// 
+  |  |  **|**  | //VarSpec// ``,`` //[VarSpec]// 
+  | //[ArrayDimension]// | -> | **eps**
+  |  |  **|**  | //ArrayDimension// //[ArrayDimension]// 
+  | //[BasicDeclaration]// | -> | **eps**
+  |  |  **|**  | //BasicDeclaration// 
+  |  |  **|**  | //BasicDeclaration// ``,`` //[BasicDeclaration]// 
+  | //[BasicArrayDimension]// | -> | **eps**
+  |  |  **|**  | //BasicArrayDimension// //[BasicArrayDimension]// 
+  | //[ConsDecl]// | -> | //ConsDecl// 
+  |  |  **|**  | //ConsDecl// ``|`` //[ConsDecl]// 
+  | //[Type]// | -> | //Type// 
+  |  |  **|**  | //Type// ``*`` //[Type]// 
+  | //[Case]// | -> | //Case// 
+  |  |  **|**  | //Case// ``|`` //[Case]// 
+  | //[Ident]// | -> | //Ident// 
+  |  |  **|**  | //Ident// ``,`` //[Ident]// 
+  | //[Expr]// | -> | **eps**
+  |  |  **|**  | //Expr// 
+  |  |  **|**  | //Expr// ``,`` //[Expr]// 
+  | //[Declaration]// | -> | **eps**
+  |  |  **|**  | //Declaration// ``;`` //[Declaration]// 
+  | //[ProgStmt]// | -> | **eps**
+  |  |  **|**  | //ProgStmt// ``;`` //[ProgStmt]// 
 
 

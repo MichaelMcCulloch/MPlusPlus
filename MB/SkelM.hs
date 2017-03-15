@@ -20,36 +20,24 @@ transBVAL x = case x of
   BVAL string -> failure x
 transProg :: Prog -> Result
 transProg x = case x of
-  Program block -> failure x
+  P block -> failure x
 transBlock :: Block -> Result
 transBlock x = case x of
-  ProgramBlock declarations programbody -> failure x
-transDeclarations :: Declarations -> Result
-transDeclarations x = case x of
-  Decs declaration declarations -> failure x
-  DecsEnd -> failure x
+  Prog declarations programbody -> failure x
 transDeclaration :: Declaration -> Result
 transDeclaration x = case x of
-  DVar vardeclaration -> failure x
-  DFun fundeclaration -> failure x
-  DData datadeclaration -> failure x
+  VarDef vardeclaration -> failure x
+  FunDef fundeclaration -> failure x
+  DataDef datadeclaration -> failure x
 transVarDeclaration :: VarDeclaration -> Result
 transVarDeclaration x = case x of
   VarDeclaration varspecs type_ -> failure x
-transVarSpecs :: VarSpecs -> Result
-transVarSpecs x = case x of
-  VarSpecs varspec morevarspecs -> failure x
-transMoreVarSpecs :: MoreVarSpecs -> Result
-transMoreVarSpecs x = case x of
-  MVSList varspec morevarspecs -> failure x
-  MVSEnd -> failure x
 transVarSpec :: VarSpec -> Result
 transVarSpec x = case x of
   VarSpec ident arraydimensions -> failure x
-transArrayDimensions :: ArrayDimensions -> Result
-transArrayDimensions x = case x of
-  ADList expr arraydimensions -> failure x
-  ADEnd -> failure x
+transArrayDimension :: ArrayDimension -> Result
+transArrayDimension x = case x of
+  ArrDim expr -> failure x
 transType :: Type -> Result
 transType x = case x of
   Tint -> failure x
@@ -65,43 +53,20 @@ transFunBlock x = case x of
   FunctionBlock declarations funbody -> failure x
 transParamList :: ParamList -> Result
 transParamList x = case x of
-  ParameterList parameters -> failure x
-transParameters :: Parameters -> Result
-transParameters x = case x of
-  ParametersList basicdeclaration moreparameters -> failure x
-  ParametersEnd -> failure x
-transMoreParameters :: MoreParameters -> Result
-transMoreParameters x = case x of
-  MParametersList basicdeclaration moreparameters -> failure x
-  MParametersEnd -> failure x
+  ParameterList basicdeclarations -> failure x
 transBasicDeclaration :: BasicDeclaration -> Result
 transBasicDeclaration x = case x of
   BasicDeclaration ident basicarraydimensions type_ -> failure x
-transBasicArrayDimensions :: BasicArrayDimensions -> Result
-transBasicArrayDimensions x = case x of
-  BADList basicarraydimensions -> failure x
-  BADEnd -> failure x
+transBasicArrayDimension :: BasicArrayDimension -> Result
+transBasicArrayDimension x = case x of
+  BArrDim -> failure x
 transDataDeclaration :: DataDeclaration -> Result
 transDataDeclaration x = case x of
-  DataDeclaration ident consdeclarations -> failure x
-transConsDeclarations :: ConsDeclarations -> Result
-transConsDeclarations x = case x of
-  ConsDeclarations consdecl moreconsdecl -> failure x
-transMoreConsDecl :: MoreConsDecl -> Result
-transMoreConsDecl x = case x of
-  MCDList consdecl moreconsdecl -> failure x
-  MCDEnd -> failure x
+  DataDeclaration ident consdecls -> failure x
 transConsDecl :: ConsDecl -> Result
 transConsDecl x = case x of
-  CTypeList cid typelist -> failure x
+  CTypeList cid types -> failure x
   CSimple cid -> failure x
-transTypeList :: TypeList -> Result
-transTypeList x = case x of
-  TList type_ moretype -> failure x
-transMoreType :: MoreType -> Result
-transMoreType x = case x of
-  MTList type_ moretype -> failure x
-  MTEnd -> failure x
 transProgramBody :: ProgramBody -> Result
 transProgramBody x = case x of
   ProgBodyA progstmts -> failure x
@@ -110,10 +75,6 @@ transFunBody :: FunBody -> Result
 transFunBody x = case x of
   FunBodyA progstmts expr -> failure x
   FunBodyB progstmts expr -> failure x
-transProgStmts :: ProgStmts -> Result
-transProgStmts x = case x of
-  PSList progstmt progstmts -> failure x
-  PSEnd -> failure x
 transProgStmt :: ProgStmt -> Result
 transProgStmt x = case x of
   PIf expr progstmt1 progstmt2 -> failure x
@@ -122,29 +83,17 @@ transProgStmt x = case x of
   PLocation location expr -> failure x
   PPrint expr -> failure x
   PBlock block -> failure x
-  PExpr expr caselist -> failure x
+  PExpr expr cases -> failure x
 transLocation :: Location -> Result
 transLocation x = case x of
   Location ident arraydimensions -> failure x
-transCaseList :: CaseList -> Result
-transCaseList x = case x of
-  Cases case_ morecase -> failure x
-transMoreCase :: MoreCase -> Result
-transMoreCase x = case x of
-  MCList case_ morecase -> failure x
-  MCEnd -> failure x
 transCase :: Case -> Result
 transCase x = case x of
   Case cid varlist progstmt -> failure x
 transVarList :: VarList -> Result
 transVarList x = case x of
-  VLList varlist -> failure x
+  VLList idents -> failure x
   VLEnd -> failure x
-  VarList ident morevarlist -> failure x
-transMoreVarList :: MoreVarList -> Result
-transMoreVarList x = case x of
-  MVLList ident morevarlist -> failure x
-  MVLEnd -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
   BOr expr bintterm -> failure x
@@ -184,12 +133,12 @@ transMulop x = case x of
 transIntFactor :: IntFactor -> Result
 transIntFactor x = case x of
   Expression expr -> failure x
-  ListSize ident basicarraydimensions -> failure x
-  ToFloat expr -> failure x
-  FunFloor expr -> failure x
-  FunCeil expr -> failure x
-  IDModList ident modifierlist -> failure x
-  IData cid consargumentlist -> failure x
+  Size ident basicarraydimensions -> failure x
+  Float expr -> failure x
+  Floor expr -> failure x
+  Ceil expr -> failure x
+  ID ident modifierlist -> failure x
+  Data cid consargumentlist -> failure x
   Integer integer -> failure x
   Real double -> failure x
   Boolean bval -> failure x
@@ -201,17 +150,9 @@ transModifierList x = case x of
   ArrayAccess arraydimensions -> failure x
 transFunArgumentList :: FunArgumentList -> Result
 transFunArgumentList x = case x of
-  Args arguments -> failure x
+  Args exprs -> failure x
 transConsArgumentList :: ConsArgumentList -> Result
 transConsArgumentList x = case x of
   DataArguments funargumentlist -> failure x
-  DataArgumentsss -> failure x
-transArguments :: Arguments -> Result
-transArguments x = case x of
-  AList expr morearguments -> failure x
-  AEnd -> failure x
-transMoreArguments :: MoreArguments -> Result
-transMoreArguments x = case x of
-  MAList expr morearguments -> failure x
-  MAEnd -> failure x
+  NoArguments -> failure x
 

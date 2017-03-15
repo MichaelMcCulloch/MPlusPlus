@@ -10,38 +10,24 @@ import ErrM
 
 %name pProg Prog
 %name pBlock Block
-%name pDeclarations Declarations
 %name pDeclaration Declaration
 %name pVarDeclaration VarDeclaration
-%name pVarSpecs VarSpecs
-%name pMoreVarSpecs MoreVarSpecs
 %name pVarSpec VarSpec
-%name pArrayDimensions ArrayDimensions
+%name pArrayDimension ArrayDimension
 %name pType Type
 %name pFunDeclaration FunDeclaration
 %name pFunBlock FunBlock
 %name pParamList ParamList
-%name pParameters Parameters
-%name pMoreParameters MoreParameters
 %name pBasicDeclaration BasicDeclaration
-%name pBasicArrayDimensions BasicArrayDimensions
+%name pBasicArrayDimension BasicArrayDimension
 %name pDataDeclaration DataDeclaration
-%name pConsDeclarations ConsDeclarations
-%name pMoreConsDecl MoreConsDecl
 %name pConsDecl ConsDecl
-%name pTypeList TypeList
-%name pMoreType MoreType
 %name pProgramBody ProgramBody
 %name pFunBody FunBody
-%name pProgStmts ProgStmts
 %name pProgStmt ProgStmt
 %name pLocation Location
-%name pCaseList CaseList
-%name pMoreCase MoreCase
 %name pCase Case
 %name pVarList VarList
-%name pVarList1 VarList1
-%name pMoreVarList MoreVarList
 %name pExpr Expr
 %name pBintTerm BintTerm
 %name pBintFactor BintFactor
@@ -54,8 +40,17 @@ import ErrM
 %name pModifierList ModifierList
 %name pFunArgumentList FunArgumentList
 %name pConsArgumentList ConsArgumentList
-%name pArguments Arguments
-%name pMoreArguments MoreArguments
+%name pListVarSpec ListVarSpec
+%name pListArrayDimension ListArrayDimension
+%name pListBasicDeclaration ListBasicDeclaration
+%name pListBasicArrayDimension ListBasicArrayDimension
+%name pListConsDecl ListConsDecl
+%name pListType ListType
+%name pListCase ListCase
+%name pListIdent ListIdent
+%name pListExpr ListExpr
+%name pListDeclaration ListDeclaration
+%name pListProgStmt ListProgStmt
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
@@ -126,28 +121,19 @@ CID    :: { CID} : L_CID { CID ($1)}
 BVAL    :: { BVAL} : L_BVAL { BVAL ($1)}
 
 Prog :: { Prog }
-Prog : Block { AbsM.Program $1 }
+Prog : Block { AbsM.P $1 }
 Block :: { Block }
-Block : Declarations ProgramBody { AbsM.ProgramBlock $1 $2 }
-Declarations :: { Declarations }
-Declarations : Declaration ';' Declarations { AbsM.Decs $1 $3 }
-             | {- empty -} { AbsM.DecsEnd }
+Block : ListDeclaration ProgramBody { AbsM.Prog (reverse $1) $2 }
 Declaration :: { Declaration }
-Declaration : VarDeclaration { AbsM.DVar $1 }
-            | FunDeclaration { AbsM.DFun $1 }
-            | DataDeclaration { AbsM.DData $1 }
+Declaration : VarDeclaration { AbsM.VarDef $1 }
+            | FunDeclaration { AbsM.FunDef $1 }
+            | DataDeclaration { AbsM.DataDef $1 }
 VarDeclaration :: { VarDeclaration }
-VarDeclaration : 'var' VarSpecs ':' Type { AbsM.VarDeclaration $2 $4 }
-VarSpecs :: { VarSpecs }
-VarSpecs : VarSpec MoreVarSpecs { AbsM.VarSpecs $1 $2 }
-MoreVarSpecs :: { MoreVarSpecs }
-MoreVarSpecs : ',' VarSpec MoreVarSpecs { AbsM.MVSList $2 $3 }
-             | {- empty -} { AbsM.MVSEnd }
+VarDeclaration : 'var' ListVarSpec ':' Type { AbsM.VarDeclaration $2 $4 }
 VarSpec :: { VarSpec }
-VarSpec : Ident ArrayDimensions { AbsM.VarSpec $1 $2 }
-ArrayDimensions :: { ArrayDimensions }
-ArrayDimensions : '[' Expr ']' ArrayDimensions { AbsM.ADList $2 $4 }
-                | {- empty -} { AbsM.ADEnd }
+VarSpec : Ident ListArrayDimension { AbsM.VarSpec $1 (reverse $2) }
+ArrayDimension :: { ArrayDimension }
+ArrayDimension : '[' Expr ']' { AbsM.ArrDim $2 }
 Type :: { Type }
 Type : 'int' { AbsM.Tint }
      | 'real' { AbsM.Treal }
@@ -157,44 +143,24 @@ Type : 'int' { AbsM.Tint }
 FunDeclaration :: { FunDeclaration }
 FunDeclaration : 'fun' Ident ParamList ':' Type '{' FunBlock '}' { AbsM.FunctionDec $2 $3 $5 $7 }
 FunBlock :: { FunBlock }
-FunBlock : Declarations FunBody { AbsM.FunctionBlock $1 $2 }
+FunBlock : ListDeclaration FunBody { AbsM.FunctionBlock (reverse $1) $2 }
 ParamList :: { ParamList }
-ParamList : '(' Parameters ')' { AbsM.ParameterList $2 }
-Parameters :: { Parameters }
-Parameters : BasicDeclaration MoreParameters { AbsM.ParametersList $1 $2 }
-           | {- empty -} { AbsM.ParametersEnd }
-MoreParameters :: { MoreParameters }
-MoreParameters : ',' BasicDeclaration MoreParameters { AbsM.MParametersList $2 $3 }
-               | {- empty -} { AbsM.MParametersEnd }
+ParamList : '(' ListBasicDeclaration ')' { AbsM.ParameterList $2 }
 BasicDeclaration :: { BasicDeclaration }
-BasicDeclaration : Ident BasicArrayDimensions ':' Type { AbsM.BasicDeclaration $1 $2 $4 }
-BasicArrayDimensions :: { BasicArrayDimensions }
-BasicArrayDimensions : '[' ']' BasicArrayDimensions { AbsM.BADList $3 }
-                     | {- empty -} { AbsM.BADEnd }
+BasicDeclaration : Ident ListBasicArrayDimension ':' Type { AbsM.BasicDeclaration $1 (reverse $2) $4 }
+BasicArrayDimension :: { BasicArrayDimension }
+BasicArrayDimension : '[' ']' { AbsM.BArrDim }
 DataDeclaration :: { DataDeclaration }
-DataDeclaration : 'data' Ident '=' ConsDeclarations { AbsM.DataDeclaration $2 $4 }
-ConsDeclarations :: { ConsDeclarations }
-ConsDeclarations : ConsDecl MoreConsDecl { AbsM.ConsDeclarations $1 $2 }
-MoreConsDecl :: { MoreConsDecl }
-MoreConsDecl : '|' ConsDecl MoreConsDecl { AbsM.MCDList $2 $3 }
-             | {- empty -} { AbsM.MCDEnd }
+DataDeclaration : 'data' Ident '=' ListConsDecl { AbsM.DataDeclaration $2 $4 }
 ConsDecl :: { ConsDecl }
-ConsDecl : CID 'of' TypeList { AbsM.CTypeList $1 $3 }
+ConsDecl : CID 'of' ListType { AbsM.CTypeList $1 $3 }
          | CID { AbsM.CSimple $1 }
-TypeList :: { TypeList }
-TypeList : Type MoreType { AbsM.TList $1 $2 }
-MoreType :: { MoreType }
-MoreType : '*' Type MoreType { AbsM.MTList $2 $3 }
-         | {- empty -} { AbsM.MTEnd }
 ProgramBody :: { ProgramBody }
-ProgramBody : 'begin' ProgStmts 'end' { AbsM.ProgBodyA $2 }
-            | ProgStmts { AbsM.ProgBodyB $1 }
+ProgramBody : 'begin' ListProgStmt 'end' { AbsM.ProgBodyA (reverse $2) }
+            | ListProgStmt { AbsM.ProgBodyB (reverse $1) }
 FunBody :: { FunBody }
-FunBody : 'begin' ProgStmts 'return' Expr ';' 'end' { AbsM.FunBodyA $2 $4 }
-        | ProgStmts 'return' Expr ';' { AbsM.FunBodyB $1 $3 }
-ProgStmts :: { ProgStmts }
-ProgStmts : ProgStmt ';' ProgStmts { AbsM.PSList $1 $3 }
-          | {- empty -} { AbsM.PSEnd }
+FunBody : 'begin' ListProgStmt 'return' Expr ';' 'end' { AbsM.FunBodyA (reverse $2) $4 }
+        | ListProgStmt 'return' Expr ';' { AbsM.FunBodyB (reverse $1) $3 }
 ProgStmt :: { ProgStmt }
 ProgStmt : 'if' Expr 'then' ProgStmt 'else' ProgStmt { AbsM.PIf $2 $4 $6 }
          | 'while' Expr 'do' ProgStmt { AbsM.PWhile $2 $4 }
@@ -202,24 +168,14 @@ ProgStmt : 'if' Expr 'then' ProgStmt 'else' ProgStmt { AbsM.PIf $2 $4 $6 }
          | Location ':=' Expr { AbsM.PLocation $1 $3 }
          | 'print' Expr { AbsM.PPrint $2 }
          | '{' Block '}' { AbsM.PBlock $2 }
-         | 'case' Expr 'of' '{' CaseList '}' { AbsM.PExpr $2 $5 }
+         | 'case' Expr 'of' '{' ListCase '}' { AbsM.PExpr $2 $5 }
 Location :: { Location }
-Location : Ident ArrayDimensions { AbsM.Location $1 $2 }
-CaseList :: { CaseList }
-CaseList : Case MoreCase { AbsM.Cases $1 $2 }
-MoreCase :: { MoreCase }
-MoreCase : '|' Case MoreCase { AbsM.MCList $2 $3 }
-         | {- empty -} { AbsM.MCEnd }
+Location : Ident ListArrayDimension { AbsM.Location $1 (reverse $2) }
 Case :: { Case }
 Case : CID VarList '=>' ProgStmt { AbsM.Case $1 $2 $4 }
 VarList :: { VarList }
-VarList : '(' VarList1 ')' { AbsM.VLList $2 }
+VarList : '(' ListIdent ')' { AbsM.VLList $2 }
         | {- empty -} { AbsM.VLEnd }
-VarList1 :: { VarList }
-VarList1 : Ident MoreVarList { AbsM.VarList $1 $2 }
-MoreVarList :: { MoreVarList }
-MoreVarList : ',' Ident MoreVarList { AbsM.MVLList $2 $3 }
-            | {- empty -} { AbsM.MVLEnd }
 Expr :: { Expr }
 Expr : Expr '||' BintTerm { AbsM.BOr $1 $3 }
      | BintTerm { AbsM.BTerm $1 }
@@ -248,12 +204,12 @@ Mulop :: { Mulop }
 Mulop : '*' { AbsM.Mult } | '/' { AbsM.Divide }
 IntFactor :: { IntFactor }
 IntFactor : '(' Expr ')' { AbsM.Expression $2 }
-          | 'size' '(' Ident BasicArrayDimensions ')' { AbsM.ListSize $3 $4 }
-          | 'float' '(' Expr ')' { AbsM.ToFloat $3 }
-          | 'floor' '(' Expr ')' { AbsM.FunFloor $3 }
-          | 'ceil' '(' Expr ')' { AbsM.FunCeil $3 }
-          | Ident ModifierList { AbsM.IDModList $1 $2 }
-          | CID ConsArgumentList { AbsM.IData $1 $2 }
+          | 'size' '(' Ident ListBasicArrayDimension ')' { AbsM.Size $3 (reverse $4) }
+          | 'float' '(' Expr ')' { AbsM.Float $3 }
+          | 'floor' '(' Expr ')' { AbsM.Floor $3 }
+          | 'ceil' '(' Expr ')' { AbsM.Ceil $3 }
+          | Ident ModifierList { AbsM.ID $1 $2 }
+          | CID ConsArgumentList { AbsM.Data $1 $2 }
           | Integer { AbsM.Integer $1 }
           | Double { AbsM.Real $1 }
           | BVAL { AbsM.Boolean $1 }
@@ -261,18 +217,45 @@ IntFactor : '(' Expr ')' { AbsM.Expression $2 }
           | '-' IntFactor { AbsM.Negate $2 }
 ModifierList :: { ModifierList }
 ModifierList : FunArgumentList { AbsM.FunctionCall $1 }
-             | ArrayDimensions { AbsM.ArrayAccess $1 }
+             | ListArrayDimension { AbsM.ArrayAccess (reverse $1) }
 FunArgumentList :: { FunArgumentList }
-FunArgumentList : '(' Arguments ')' { AbsM.Args $2 }
+FunArgumentList : '(' ListExpr ')' { AbsM.Args $2 }
 ConsArgumentList :: { ConsArgumentList }
 ConsArgumentList : FunArgumentList { AbsM.DataArguments $1 }
-                 | {- empty -} { AbsM.DataArgumentsss }
-Arguments :: { Arguments }
-Arguments : Expr MoreArguments { AbsM.AList $1 $2 }
-          | {- empty -} { AbsM.AEnd }
-MoreArguments :: { MoreArguments }
-MoreArguments : ',' Expr MoreArguments { AbsM.MAList $2 $3 }
-              | {- empty -} { AbsM.MAEnd }
+                 | {- empty -} { AbsM.NoArguments }
+ListVarSpec :: { [VarSpec] }
+ListVarSpec : {- empty -} { [] }
+            | VarSpec { (:[]) $1 }
+            | VarSpec ',' ListVarSpec { (:) $1 $3 }
+ListArrayDimension :: { [ArrayDimension] }
+ListArrayDimension : {- empty -} { [] }
+                   | ListArrayDimension ArrayDimension { flip (:) $1 $2 }
+ListBasicDeclaration :: { [BasicDeclaration] }
+ListBasicDeclaration : {- empty -} { [] }
+                     | BasicDeclaration { (:[]) $1 }
+                     | BasicDeclaration ',' ListBasicDeclaration { (:) $1 $3 }
+ListBasicArrayDimension :: { [BasicArrayDimension] }
+ListBasicArrayDimension : {- empty -} { [] }
+                        | ListBasicArrayDimension BasicArrayDimension { flip (:) $1 $2 }
+ListConsDecl :: { [ConsDecl] }
+ListConsDecl : ConsDecl { (:[]) $1 }
+             | ConsDecl '|' ListConsDecl { (:) $1 $3 }
+ListType :: { [Type] }
+ListType : Type { (:[]) $1 } | Type '*' ListType { (:) $1 $3 }
+ListCase :: { [Case] }
+ListCase : Case { (:[]) $1 } | Case '|' ListCase { (:) $1 $3 }
+ListIdent :: { [Ident] }
+ListIdent : Ident { (:[]) $1 } | Ident ',' ListIdent { (:) $1 $3 }
+ListExpr :: { [Expr] }
+ListExpr : {- empty -} { [] }
+         | Expr { (:[]) $1 }
+         | Expr ',' ListExpr { (:) $1 $3 }
+ListDeclaration :: { [Declaration] }
+ListDeclaration : {- empty -} { [] }
+                | ListDeclaration Declaration ';' { flip (:) $1 $2 }
+ListProgStmt :: { [ProgStmt] }
+ListProgStmt : {- empty -} { [] }
+             | ListProgStmt ProgStmt ';' { flip (:) $1 $2 }
 {
 
 returnM :: a -> Err a
