@@ -1,4 +1,4 @@
-# Revision history for MParser
+# Revision history for MCompiler
 
 ## 0.1.0.0  -- YYYY-mm-dd
 

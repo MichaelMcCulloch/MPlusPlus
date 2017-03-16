@@ -1,0 +1,123 @@
+comment "%" ;
+comment "/*" "*/" ;
+
+token CID '#'('_' | digit | letter )* ;
+token BVAL ({"false"} | {"true"});
+
+M.  Prog ::= Block ;
+
+Program. Block ::= [Declaration] ProgramBody ;
+
+Dec_Var.     Declaration ::= VarDeclaration ;
+Dec_Fun.     Declaration ::= FunDeclaration ;
+Dec_Data.    Declaration ::= DataDeclaration ;
+
+D_Variable.     VarDeclaration ::= "var" [VarSpec] ":" Type ;
+
+V_Spec.    VarSpec ::= Ident [ArrayDimension] ;
+
+ArrDim.   ArrayDimension ::= "[" Expr "]" ;
+
+T_Int.     Type ::= "int" ;
+T_Real.    Type ::= "real" ;
+T_Bool.    Type ::= "bool" ;
+T_Char.    Type ::= "char" ;
+T_User.    Type ::= Ident ;
+
+D_Function.       FunDeclaration ::= "fun" Ident ParamList ":" Type "{" FunBlock "}" ;
+
+FunctionBlock.       FunBlock ::= [Declaration] FunBody ;
+
+ParameterList.       ParamList ::= "(" [BasicDeclaration] ")" ;
+
+BasicDec.     BasicDeclaration ::= Ident [BasicArrayDimension] ":" Type ;
+
+B_ArrDim. BasicArrayDimension ::= "[" "]" ;
+
+D_Data.   DataDeclaration ::= "data" Ident "=" [ConsDecl] ;
+
+TypeComposition.   ConsDecl ::= CID "of" [Type] ;
+TypeConstructor.       ConsDecl ::= CID ;
+
+P_Body. ProgramBody ::= "begin" [ProgStmt] "end" ;
+P_Body.  ProgramBody ::= [ProgStmt] ;
+
+F_Body. FunBody ::= "begin" [ProgStmt] "return" Expr ";" "end" ;
+F_Body.    FunBody ::= [ProgStmt] "return" Expr ";" ;
+
+P_If.      ProgStmt ::= "if" Expr "then" ProgStmt "else" ProgStmt ;
+P_While.   ProgStmt ::= "while" Expr "do" ProgStmt ;
+P_Read.    ProgStmt ::= "read" Location ;
+P_Assign.  ProgStmt ::= Location ":=" Expr ;
+P_Print.   ProgStmt ::= "print" Expr ;
+P_Block.   ProgStmt ::= "{" Block "}" ;
+P_Case.    ProgStmt ::= "case" Expr "of" "{" [Case] "}" ;
+
+L_Location.      Location ::= Ident [ArrayDimension] ;
+
+C_Case.     Case ::= CID VarList "=>" ProgStmt ;
+
+VL_List.   VarList ::= "(" [Ident] ")" ;
+VL_End.    VarList ::= ;
+
+B_Or.      Expr ::= Expr "||" BintTerm ;
+B_Term.     Expr ::= BintTerm ;
+
+B_And.     BintTerm ::= BintTerm "&&" BintFactor ;
+B_Factor.    BintTerm ::= BintFactor ;
+
+B_Not.     BintFactor ::= "not" BintFactor ;
+B_Compare.    BintFactor ::= IntExpr CompareOp IntExpr ;
+B_Expr.     BintFactor ::= IntExpr ;
+
+B_EQ.       CompareOp ::= "=" ;
+B_LT.       CompareOp ::= "<" ;
+B_GT.       CompareOp ::= ">" ;
+B_LE.      CompareOp ::= "=<" ;
+B_GE.      CompareOp ::= ">=" ;
+
+Int_Add.     IntExpr ::= IntExpr Addop IntTerm ;
+Int_Term.    IntExpr ::= IntTerm ;
+
+Op_Add.     Addop ::= "+" ;
+Op_Sub.    Addop ::= "-" ;
+
+Int_Mul.     IntTerm ::= IntTerm Mulop IntFactor ;
+Int_Factor.    IntTerm ::= IntFactor ;
+
+Op_Mult.      Mulop ::= "*" ;
+Op_Divide.      Mulop ::= "/" ;
+
+IF_Expression.   IntFactor ::= "(" Expr ")" ;
+IF_Size.   IntFactor ::= "size" "(" Ident [BasicArrayDimension] ")" ;
+IF_Float.  IntFactor ::= "float" "(" Expr ")" ;
+IF_Floor.  IntFactor ::= "floor" "(" Expr ")" ;
+IF_Ceil.   IntFactor ::= "ceil" "(" Expr ")" ;
+IF_ID.     IntFactor ::= Ident ModifierList ;
+IF_Data.    IntFactor ::= CID ConsArgumentList ;
+IF_Integer.    IntFactor ::= Integer ;
+IF_Real.   IntFactor ::= Double ;
+IF_Boolean.   IntFactor ::= BVAL ;
+IF_Character.   IntFactor ::= Char ;
+IF_Negate.    IntFactor ::= "-" IntFactor ;
+
+Mod_CallParams.    ModifierList ::= FunArgumentList ;
+Mod_Array.    ModifierList ::= [ArrayDimension] ;
+
+F_Args.  FunArgumentList ::= "(" [Expr] ")" ;
+
+CAL_Arguments.  ConsArgumentList ::= FunArgumentList ;
+CAL_NoArgs.   ConsArgumentList ::= ;
+
+separator VarSpec "," ;
+separator ArrayDimension "" ;
+separator BasicDeclaration "," ;
+separator BasicArrayDimension "" ;
+separator nonempty ConsDecl "|" ;
+separator nonempty Type "*" ;
+separator nonempty Case "|" ;
+separator nonempty Ident "," ;
+separator Expr "," ;
+
+terminator Declaration ";" ;
+terminator ProgStmt ";" ;
