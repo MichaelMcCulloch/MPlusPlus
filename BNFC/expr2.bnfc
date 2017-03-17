@@ -1,7 +1,0 @@
-EAdd.Expr ::= Expr "+" Term ;
-ETerm.Expr ::= Term ;
-
-TMul.Term ::= Term "*" Factor ;
-TFact.Term ::= Factor ;
-
-Num.Factor ::= Integer ;
