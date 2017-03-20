@@ -51,7 +51,7 @@ showStmt s i =
   let r j = (concat $ replicate (j-1) "  ")
       in case s of
         M_ass (name, address, expr) -> r i ++ show s ++ "\n"
-        M_while (cond, stmt) -> r i ++ "M_while (" ++ show cond ++ ")" ++ "{\n" ++ showStmt s (i+1) ++ r (i+1) ++ "};\n"
+        M_while (cond, stmt) -> r i ++ "M_while (" ++ show cond ++ ")" ++ "{\n" ++ showStmt stmt (i+1) ++ r (i+1) ++ "};\n"
         M_cond (cond, then_, else_) -> r i ++ "M_Cond (" ++ show cond ++ "\n" ++ r (i+1) ++ show then_ ++ "\n" ++ r (i+1) ++ show else_ ++ ")" ++ "\n"
         M_print e -> r i ++ show s ++ "\n"
         M_read (name, address) -> r i ++ show s ++ "\n"
