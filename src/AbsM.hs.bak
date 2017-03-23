@@ -7,9 +7,11 @@ module AbsM where
 
 
 
-newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
-newtype CID = CID String deriving (Eq, Ord, Show, Read)
-newtype BVAL = BVAL String deriving (Eq, Ord, Show, Read)
+newtype CID = CID ((Int,Int),String) deriving (Eq, Ord, Show, Read)
+newtype BVAL = BVAL ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
+newtype PIdent = PIdent ((Int,Int),String)
+  deriving (Eq, Ord, Show, Read)
 data Prog = M Block
   deriving (Eq, Ord, Show, Read)
 
@@ -25,16 +27,16 @@ data Declaration
 data VarDeclaration = D_Variable [VarSpec] Type
   deriving (Eq, Ord, Show, Read)
 
-data VarSpec = VarSpec Ident [ArrayDimension]
+data VarSpec = V_Spec PIdent [ArrayDimension]
   deriving (Eq, Ord, Show, Read)
 
 data ArrayDimension = ArrDim Expr
   deriving (Eq, Ord, Show, Read)
 
-data Type = T_Int | T_Real | T_Bool | T_Char | T_User Ident
+data Type = T_Int | T_Real | T_Bool | T_Char | T_User PIdent
   deriving (Eq, Ord, Show, Read)
 
-data FunDeclaration = D_Function Ident ParamList Type FunBlock
+data FunDeclaration = D_Function PIdent ParamList Type FunBlock
   deriving (Eq, Ord, Show, Read)
 
 data FunBlock = FunctionBlock [Declaration] FunBody
@@ -43,13 +45,13 @@ data FunBlock = FunctionBlock [Declaration] FunBody
 data ParamList = ParameterList [BasicDeclaration]
   deriving (Eq, Ord, Show, Read)
 
-data BasicDeclaration = BasicDec Ident [BasicArrayDimension] Type
+data BasicDeclaration = BasicDec PIdent [BasicArrayDimension] Type
   deriving (Eq, Ord, Show, Read)
 
 data BasicArrayDimension = B_ArrDim
   deriving (Eq, Ord, Show, Read)
 
-data DataDeclaration = D_Data Ident [ConsDecl]
+data DataDeclaration = D_Data PIdent [ConsDecl]
   deriving (Eq, Ord, Show, Read)
 
 data ConsDecl = TypeComposition CID [Type] | TypeConstructor CID
@@ -58,7 +60,7 @@ data ConsDecl = TypeComposition CID [Type] | TypeConstructor CID
 data ProgramBody = P_Body [ProgStmt]
   deriving (Eq, Ord, Show, Read)
 
-data FunBody = FB_BE [ProgStmt] Expr
+data FunBody = F_Body [ProgStmt] Expr
   deriving (Eq, Ord, Show, Read)
 
 data ProgStmt
@@ -71,13 +73,13 @@ data ProgStmt
     | P_Case Expr [Case]
   deriving (Eq, Ord, Show, Read)
 
-data Location = L_Location Ident [ArrayDimension]
+data Location = L_Location PIdent [ArrayDimension]
   deriving (Eq, Ord, Show, Read)
 
 data Case = C_Case CID VarList ProgStmt
   deriving (Eq, Ord, Show, Read)
 
-data VarList = VL_List [Ident] | VL_End
+data VarList = VL_List [PIdent] | VL_End
   deriving (Eq, Ord, Show, Read)
 
 data Expr = B_Or Expr BintTerm | B_Term BintTerm
@@ -110,11 +112,11 @@ data Mulop = Op_Mult | Op_Divide
 
 data IntFactor
     = IF_Expression Expr
-    | IF_Size Ident [BasicArrayDimension]
+    | IF_Size PIdent [BasicArrayDimension]
     | IF_Float Expr
     | IF_Floor Expr
     | IF_Ceil Expr
-    | IF_ID Ident ModifierList
+    | IF_ID PIdent ModifierList
     | IF_Data CID ConsArgumentList
     | IF_Integer Integer
     | IF_Real Double

@@ -57,7 +57,7 @@ executable MCompiler
   other-extensions:    CPP
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, array >=0.5 && <0.6
+  build-depends:       base >=4.9 && <4.10, array >=0.5 && <0.6, mtl
 
   -- Directories containing source files.
   hs-source-dirs:      src
