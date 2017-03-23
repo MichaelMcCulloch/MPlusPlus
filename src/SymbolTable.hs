@@ -1,4 +1,4 @@
-module SymbolTable (ST,empty,newScope,insert,lookup,return) where
+module SymbolTable (ST,empty,newScope,insert,lookup_,return_) where
 
 import AST
 import Data.Char
@@ -35,7 +35,7 @@ newScope t s = SymbolTable (t,0,0,[]) : s
 
 insert:: ST -> SYM_DESC -> State Int (Either String ST) -- The int in State is the current code label.
 insert [] _ = return $ Left "Insertion before defining scope."
-insert symTab@(SymbolTable (sT, nLocal, nArgs, sL) : rest) desc =
+insert symtab@(SymbolTable (sT, nLocal, nArgs, sL) : rest) desc =
   case desc of
     ARGUMENT (name, type_, dims)
       | (in_index_list name sL) -> err_defined name
@@ -60,21 +60,39 @@ insert symTab@(SymbolTable (sT, nLocal, nArgs, sL) : rest) desc =
           i <- get
           modify (+1)
           return $ Right (SymbolTable (sT, nLocal, nArgs,
-            (name, Type_attr ["List of associated constructor"]):sL):rest)
-    CONSTRUCTOR (name, types, dataType)
+            (name, Type_attr []):sL):rest)
+    CONSTRUCTOR (name, types, dataType) --this may work
       | (in_index_list name sL) -> err_defined name
       | otherwise ->
-        return $ Right (SymbolTable (sT, nLocal, nArgs,
-          (name, Con_attr (1, types, "parent")):sL):rest) -- '1' should be index of constructor in associated dataType
+        case lookup_ symtab dataType of
+          Left err -> return $ Left err
+          Right (I_TYPE constr) ->
+            let ind = (length constr) - 1
+                conAttr = (name, Con_attr (ind + 1, types, dataType))
+                datAttr = (dataType, Type_attr (constr ++ [name]))
+                in return $ Right (SymbolTable (sT, nLocal, nArgs, (datAttr:conAttr:sL)):rest )
   where
-    err_defined sym = return $ Left ("Symbol table error: " ++ sym ++"is already defined.")
+    err_defined sym = return $ Left ("Symbol table error: <" ++ sym ++"> is already defined.")
     in_index_list str [] = False
     in_index_list str ((x,_):xs)
       | str == x = True
       | otherwise = in_index_list str xs
 
 lookup_:: ST -> String -> Either String SYM_I_DESC
-lookup_ st s = Left s
+lookup_ st key = find 0 st key where
+  find n [] str = Left ("Error \""++ str ++ "\" not found")
+  find n (SymbolTable (_,_,_,attrs):rest) str =
+    case lookup str attrs of --not a typo
+      Just attr -> Right (found n attr)
+      Nothing -> find (n+1) rest str
+  found level attr =
+    case attr of
+      Var_attr (offset, mT, dim) -> I_VARIABLE (level, offset, mT, dim)
+      Fun_attr (label,args,mT) -> I_FUNCTION (level,label,args,mT)
+      Con_attr (constructorNumber,cTypes,dataName) -> I_CONSTRUCTOR (constructorNumber, cTypes, dataName)
+      Type_attr constructors -> I_TYPE constructors
+
 
 return_:: ST -> Either String M_type --Must be L_Fun type
-return_ s = Left ""
+return_ (SymbolTable (L_Fun m_t, _, _, _) : rest) = Right m_t
+return_ _ = Left "Not in function scope."
