@@ -6,8 +6,12 @@ import AbsM
 import AST
 import ASTConv
 import ErrM
+import GenSymTab
 
 import System.Environment
+
+
+
 
 test:: String -> IO ()
 test s = do

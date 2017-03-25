@@ -1,8 +1,9 @@
-module SymbolTable (ST,empty,newScope,insert,lookup_,return_) where
+module SymbolTable where
 
 import AST
 import Data.Char
 import Control.Monad.State.Lazy
+import Control.Monad.Error
 
 data ScopeType = L_Prog | L_Fun M_type | L_Blk | L_Cases
                 deriving (Eq, Show)
@@ -27,52 +28,56 @@ data SymbolTable = SymbolTable (ScopeType,Int,Int,[(String,SYM_VALUE)])
 
 type ST = [SymbolTable]
 
+type StateErr a = StateT Int (Either String) a
+
+
+
 empty:: ST
 empty = []
 
 newScope:: ScopeType -> ST -> ST
 newScope t s = SymbolTable (t,0,0,[]) : s
 
-insert:: ST -> SYM_DESC -> State Int (Either String ST) -- The int in State is the current code label.
-insert [] _ = return $ Left "Insertion before defining scope."
+insert:: ST -> SYM_DESC -> StateErr ST -- The int in State is the current code label.
+insert [] _ = throwError "Insertion before defining scope."
 insert symtab@(SymbolTable (sT, nLocal, nArgs, sL) : rest) desc =
   case desc of
     ARGUMENT (name, type_, dims)
       | (in_index_list name sL) -> err_defined name
       | otherwise ->
-        return $ Right (SymbolTable (sT, nLocal, nArgs+1,
+        return (SymbolTable (sT, nLocal, nArgs+1,
           (name, Var_attr (-(nArgs+4),type_, dims)) : sL):rest) --why plus 4?
     VARIABLE (name, type_, dims)
       | (in_index_list name sL) -> err_defined name
       | otherwise ->
-        return $ Right (SymbolTable (sT, nLocal+1, nArgs,
+        return (SymbolTable (sT, nLocal+1, nArgs,
           (name, Var_attr (nLocal + 1,type_, dims)) : sL):rest)
     FUNCTION (name, argTypes, f_type)
       | (in_index_list name sL) -> err_defined name
       | otherwise -> do
           i <- get
           modify (+1)
-          return $ Right (SymbolTable (sT, nLocal, nArgs,
-            (name, Fun_attr ("fn_"++ [chr i], argTypes, f_type)):sL):rest)
+          return (SymbolTable (sT, nLocal, nArgs,
+            (name, Fun_attr ("fn_"++ name, argTypes, f_type)):sL):rest)
     DATATYPE name
       | (in_index_list name sL) -> err_defined name
       | otherwise -> do
           i <- get
           modify (+1)
-          return $ Right (SymbolTable (sT, nLocal, nArgs,
+          return (SymbolTable (sT, nLocal, nArgs,
             (name, Type_attr []):sL):rest)
     CONSTRUCTOR (name, types, dataType) --this may work
       | (in_index_list name sL) -> err_defined name
       | otherwise ->
         case lookup_ symtab dataType of
-          Left err -> return $ Left err
+          Left err -> throwError err
           Right (I_TYPE constr) ->
             let ind = (length constr) - 1
                 conAttr = (name, Con_attr (ind + 1, types, dataType))
                 datAttr = (dataType, Type_attr (constr ++ [name]))
-                in return $ Right (SymbolTable (sT, nLocal, nArgs, (datAttr:conAttr:sL)):rest )
+                in return (SymbolTable (sT, nLocal, nArgs, (datAttr:conAttr:sL)):rest )
   where
-    err_defined sym = return $ Left ("Symbol table error: <" ++ sym ++"> is already defined.")
+    err_defined str = throwError ("Symbol table error: <" ++ str ++"> is already defined.") :: StateErr ST
     in_index_list str [] = False
     in_index_list str ((x,_):xs)
       | str == x = True
