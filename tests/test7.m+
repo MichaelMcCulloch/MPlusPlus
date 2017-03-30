@@ -1,12 +1,7 @@
-var x[2][2]:real;
-var y[1][1]:real;
-
 data rosetree = #bud of rosetreelist;
 data rosetreelist = #rnil
                   | #rcons of rosetree * rosetreelist;
 var x,y:rosetree;
-
-
 
 fun compare_matrix(a[][]:real,b[][]:real):bool
     { var v:bool;

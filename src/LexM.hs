@@ -37,8 +37,8 @@ alex_check = listArray (0,2992) [-1,9,10,11,12,13,39,45,38,61,48,49,50,51,52,53,
 alex_deflt :: Array Int Int
 alex_deflt = listArray (0,45) [-1,13,-1,-1,-1,-1,13,13,14,14,2,2,-1,13,24,24,-1,-1,-1,-1,-1,-1,25,25,25,25,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1]
 
-alex_accept = listArray (0::Int,45) [AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_4),AlexAcc (alex_action_5),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_7),AlexAcc (alex_action_8),AlexAcc (alex_action_9),AlexAcc (alex_action_9)]
-{-# LINE 41 ".\LexM.x" #-}
+alex_accept = listArray (0::Int,45) [AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccNone,AlexAccSkip,AlexAccSkip,AlexAccSkip,AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_3),AlexAcc (alex_action_4),AlexAcc (alex_action_5),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_6),AlexAcc (alex_action_8),AlexAcc (alex_action_9),AlexAcc (alex_action_10),AlexAcc (alex_action_10)]
+{-# LINE 42 ".\LexM.x" #-}
 
 
 tok :: (Posn -> String -> Token) -> (Posn -> String -> Token)
@@ -56,6 +56,7 @@ data Tok =
  | TC !String         -- character literals
  | T_CID !String
  | T_BVAL !String
+ | T_PIdent !String
 
  deriving (Eq,Show,Ord)
 
@@ -92,6 +93,7 @@ prToken t = case t of
   PT _ (TC s)   -> s
   PT _ (T_CID s) -> s
   PT _ (T_BVAL s) -> s
+  PT _ (T_PIdent s) -> s
 
 
 data BTree = N | B String Tok BTree BTree deriving (Show)
@@ -190,10 +192,11 @@ utf8Encode = map fromIntegral . go . ord
 alex_action_3 =  tok (\p s -> PT p (eitherResIdent (TV . share) s)) 
 alex_action_4 =  tok (\p s -> PT p (eitherResIdent (T_CID . share) s)) 
 alex_action_5 =  tok (\p s -> PT p (eitherResIdent (T_BVAL . share) s)) 
-alex_action_6 =  tok (\p s -> PT p (eitherResIdent (TV . share) s)) 
-alex_action_7 =  tok (\p s -> PT p (TC $ share s))  
-alex_action_8 =  tok (\p s -> PT p (TI $ share s))    
-alex_action_9 =  tok (\p s -> PT p (TD $ share s)) 
+alex_action_6 =  tok (\p s -> PT p (eitherResIdent (T_PIdent . share) s)) 
+alex_action_7 =  tok (\p s -> PT p (eitherResIdent (TV . share) s)) 
+alex_action_8 =  tok (\p s -> PT p (TC $ share s))  
+alex_action_9 =  tok (\p s -> PT p (TI $ share s))    
+alex_action_10 =  tok (\p s -> PT p (TD $ share s)) 
 {-# LINE 1 "templates\GenericTemplate.hs" #-}
 {-# LINE 1 "templates\\GenericTemplate.hs" #-}
 {-# LINE 1 "<built-in>" #-}

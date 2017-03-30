@@ -11,7 +11,14 @@ import GenSymTab
 import System.Environment
 
 
-
+showAst::String -> IO ()
+showAst s = do
+  fConts <- readFile s
+  let tokens = myLexer fConts
+      pTree = pProg tokens
+      in case pTree of
+        Ok prog -> putStrLn $ showProg $ transProg prog
+        Bad err -> print err
 
 test:: String -> IO ()
 test s = do
@@ -19,7 +26,12 @@ test s = do
   let tokens = myLexer fConts
       pTree = pProg tokens
       in case pTree of
-        Ok prog -> putStrLn $ showProg $ transProg prog
+        Ok prog -> let
+          ast = transProg prog
+          st = genSymbolTable ast
+          in case st of
+              Left err -> print err
+              Right symTab -> print symTab
         Bad err -> print err
 
 main :: IO ()
@@ -32,5 +44,10 @@ main = do
       let tokens = myLexer fConts
           pTree = pProg tokens
           in case pTree of
-            Ok prog -> putStrLn $ showProg $ transProg prog
+            Ok prog -> let
+              ast = transProg prog
+              st = genSymbolTable ast
+              in case st of
+                  Left err -> print err
+                  Right symTab -> print symTab
             Bad err -> print err

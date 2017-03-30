@@ -4,10 +4,10 @@ module ASTConv where
 import qualified AST as A
 import AbsM
 
-transIdent :: Ident -> String
-transIdent x = case x of
-  Ident string -> string
-transCID :: CID -> String
+transPIdent :: PIdent -> A.PIdent
+transPIdent x = case x of
+  PIdent string -> string
+transCID :: CID -> A.PCID
 transCID x = case x of
   CID string -> string
 transBVAL :: BVAL -> Bool
@@ -30,7 +30,7 @@ transVarDeclaration x = case x of
   D_Variable varspecs type_ -> map (\v -> transVarSpec v type_) varspecs
 transVarSpec :: VarSpec -> Type -> A.M_decl
 transVarSpec x type_ = case x of
-  V_Spec ident arraydimensions -> A.M_var (transIdent ident, map transArrayDimension arraydimensions, transType type_)
+  V_Spec ident arraydimensions -> A.M_var (transPIdent ident, map transArrayDimension arraydimensions, transType type_)
 transArrayDimension :: ArrayDimension -> A.M_expr
 transArrayDimension x = case x of
   ArrDim expr -> transExpr expr
@@ -40,28 +40,28 @@ transType x = case x of
   T_Real -> A.M_real
   T_Bool -> A.M_bool
   T_Char -> A.M_char
-  T_User ident -> A.M_type (transIdent ident)
+  T_User ident -> A.M_type (transPIdent ident)
 transFunDeclaration :: FunDeclaration -> A.M_decl
 transFunDeclaration x = case x of
   D_Function ident paramlist type_ funblock ->
-    A.M_fun (transIdent ident, transParamList paramlist, transType type_, ds, ss) where
+    A.M_fun (transPIdent ident, transParamList paramlist, transType type_, ds, ss) where
       (A.M_block (ds, ss)) = transFunBlock funblock
 transFunBlock :: FunBlock -> A.M_stmt
 transFunBlock x = case x of
   FunctionBlock declarations funbody -> A.M_block (concatMap transDeclaration declarations, transFunBody funbody)
-transParamList :: ParamList -> [(String, Int, A.M_type)]
+transParamList :: ParamList -> [(A.PIdent, Int, A.M_type)]
 transParamList x = case x of
   ParameterList basicdeclarations -> map transBasicDeclaration basicdeclarations
-transBasicDeclaration :: BasicDeclaration ->(String, Int, A.M_type)
+transBasicDeclaration :: BasicDeclaration ->(A.PIdent, Int, A.M_type)
 transBasicDeclaration x = case x of
-  BasicDec ident basicarraydimensions type_ -> (transIdent ident, length basicarraydimensions, transType type_)
+  BasicDec ident basicarraydimensions type_ -> (transPIdent ident, length basicarraydimensions, transType type_)
 transBasicArrayDimension :: BasicArrayDimension -> String
 transBasicArrayDimension x = case x of
   B_ArrDim -> error "B_ArrDim"
 transDataDeclaration :: DataDeclaration -> A.M_decl
 transDataDeclaration x = case x of
-  D_Data ident consdecls -> A.M_data (transIdent ident, map transConsDecl consdecls)
-transConsDecl :: ConsDecl -> (String, [A.M_type])
+  D_Data ident consdecls -> A.M_data (transPIdent ident, map transConsDecl consdecls)
+transConsDecl :: ConsDecl -> (A.PCID, [A.M_type])
 transConsDecl x = case x of
   TypeComposition cid types -> (transCID cid, map transType types)
   TypeConstructor cid -> (transCID cid, [])
@@ -82,15 +82,15 @@ transProgStmt x = case x of
   P_Print expr -> A.M_print (transExpr expr)
   P_Block block -> transBlock block
   P_Case expr cases -> A.M_case (transExpr expr, map transCase cases)
-transLocation :: Location -> (String, [A.M_expr])
+transLocation :: Location -> (A.PIdent, [A.M_expr])
 transLocation x = case x of
-  L_Location ident arraydimensions -> (transIdent ident, map transArrayDimension arraydimensions)
-transCase :: Case -> (String,[String],A.M_stmt)
+  L_Location ident arraydimensions -> (transPIdent ident, map transArrayDimension arraydimensions)
+transCase :: Case -> (A.PCID,[A.PIdent],A.M_stmt)
 transCase x = case x of
   C_Case cid varlist progstmt -> (transCID cid, transVarList varlist, transProgStmt progstmt)
-transVarList :: VarList -> [String]
+transVarList :: VarList -> [A.PIdent]
 transVarList x = case x of
-  VL_List idents -> map transIdent idents
+  VL_List idents -> map transPIdent idents
   VL_End -> []
 transExpr :: Expr -> A.M_expr
 transExpr x = case x of
@@ -131,14 +131,14 @@ transMulop x = case x of
 transIntFactor :: IntFactor -> A.M_expr
 transIntFactor x = case x of
   IF_Expression expr -> transExpr expr
-  IF_Size ident basicarraydimensions -> A.M_size (transIdent ident, length basicarraydimensions)
+  IF_Size ident basicarraydimensions -> A.M_size (transPIdent ident, length basicarraydimensions)
   IF_Float expr -> A.M_app ( A.M_float, [transExpr expr])
   IF_Floor expr -> A.M_app ( A.M_floor, [transExpr expr])
   IF_Ceil expr -> A.M_app ( A.M_ceil, [transExpr expr])
   IF_ID ident modifierlist ->
     case modifierlist of
-      Mod_CallParams _ -> A.M_app (A.M_fn (transIdent ident), transModifierList modifierlist)
-      Mod_Array _ ->  A.M_id (transIdent ident, transModifierList modifierlist)--if modlist is ardim :ID, else FN
+      Mod_CallParams _ -> A.M_app (A.M_fn (transPIdent ident), transModifierList modifierlist)
+      Mod_Array _ ->  A.M_id (transPIdent ident, transModifierList modifierlist)--if modlist is ardim :ID, else FN
   IF_Data cid consargumentlist -> A.M_app (A.M_cid (transCID cid), transConsArgumentList consargumentlist)
   IF_Integer integer -> A.M_ival integer
   IF_Real double -> A.M_rval double

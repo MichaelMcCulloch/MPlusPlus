@@ -9,15 +9,15 @@ type Result = Err String
 failure :: Show a => a -> Result
 failure x = Bad $ "Undefined case: " ++ show x
 
-transIdent :: Ident -> Result
-transIdent x = case x of
-  Ident string -> failure x
 transCID :: CID -> Result
 transCID x = case x of
   CID string -> failure x
 transBVAL :: BVAL -> Result
 transBVAL x = case x of
   BVAL string -> failure x
+transPIdent :: PIdent -> Result
+transPIdent x = case x of
+  PIdent string -> failure x
 transProg :: Prog -> Result
 transProg x = case x of
   M block -> failure x
@@ -34,7 +34,7 @@ transVarDeclaration x = case x of
   D_Variable varspecs type_ -> failure x
 transVarSpec :: VarSpec -> Result
 transVarSpec x = case x of
-  V_Spec ident arraydimensions -> failure x
+  V_Spec pident arraydimensions -> failure x
 transArrayDimension :: ArrayDimension -> Result
 transArrayDimension x = case x of
   ArrDim expr -> failure x
@@ -44,10 +44,10 @@ transType x = case x of
   T_Real -> failure x
   T_Bool -> failure x
   T_Char -> failure x
-  T_User ident -> failure x
+  T_User pident -> failure x
 transFunDeclaration :: FunDeclaration -> Result
 transFunDeclaration x = case x of
-  D_Function ident paramlist type_ funblock -> failure x
+  D_Function pident paramlist type_ funblock -> failure x
 transFunBlock :: FunBlock -> Result
 transFunBlock x = case x of
   FunctionBlock declarations funbody -> failure x
@@ -56,13 +56,13 @@ transParamList x = case x of
   ParameterList basicdeclarations -> failure x
 transBasicDeclaration :: BasicDeclaration -> Result
 transBasicDeclaration x = case x of
-  BasicDec ident basicarraydimensions type_ -> failure x
+  BasicDec pident basicarraydimensions type_ -> failure x
 transBasicArrayDimension :: BasicArrayDimension -> Result
 transBasicArrayDimension x = case x of
   B_ArrDim -> failure x
 transDataDeclaration :: DataDeclaration -> Result
 transDataDeclaration x = case x of
-  D_Data ident consdecls -> failure x
+  D_Data pident consdecls -> failure x
 transConsDecl :: ConsDecl -> Result
 transConsDecl x = case x of
   TypeComposition cid types -> failure x
@@ -84,13 +84,13 @@ transProgStmt x = case x of
   P_Case expr cases -> failure x
 transLocation :: Location -> Result
 transLocation x = case x of
-  L_Location ident arraydimensions -> failure x
+  L_Location pident arraydimensions -> failure x
 transCase :: Case -> Result
 transCase x = case x of
   C_Case cid varlist progstmt -> failure x
 transVarList :: VarList -> Result
 transVarList x = case x of
-  VL_List idents -> failure x
+  VL_List pidents -> failure x
   VL_End -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
@@ -131,11 +131,11 @@ transMulop x = case x of
 transIntFactor :: IntFactor -> Result
 transIntFactor x = case x of
   IF_Expression expr -> failure x
-  IF_Size ident basicarraydimensions -> failure x
+  IF_Size pident basicarraydimensions -> failure x
   IF_Float expr -> failure x
   IF_Floor expr -> failure x
   IF_Ceil expr -> failure x
-  IF_ID ident modifierlist -> failure x
+  IF_ID pident modifierlist -> failure x
   IF_Data cid consargumentlist -> failure x
   IF_Integer integer -> failure x
   IF_Real double -> failure x

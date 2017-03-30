@@ -1,8 +1,9 @@
 comment "%" ;
 comment "/*" "*/" ;
 
-token CID '#'('_' | digit | letter )* ;
+position token CID '#'('_' | digit | letter )* ;
 token BVAL ({"false"} | {"true"});
+position token PIdent (letter ( letter | digit | '_' | '\'')*);
 
 M.  Prog ::= Block ;
 
@@ -14,7 +15,7 @@ Dec_Data.    Declaration ::= DataDeclaration ;
 
 D_Variable.     VarDeclaration ::= "var" [VarSpec] ":" Type ;
 
-V_Spec.    VarSpec ::= Ident [ArrayDimension] ;
+V_Spec.    VarSpec ::= PIdent [ArrayDimension] ;
 
 ArrDim.   ArrayDimension ::= "[" Expr "]" ;
 
@@ -22,19 +23,19 @@ T_Int.     Type ::= "int" ;
 T_Real.    Type ::= "real" ;
 T_Bool.    Type ::= "bool" ;
 T_Char.    Type ::= "char" ;
-T_User.    Type ::= Ident ;
+T_User.    Type ::= PIdent ;
 
-D_Function.       FunDeclaration ::= "fun" Ident ParamList ":" Type "{" FunBlock "}" ;
+D_Function.       FunDeclaration ::= "fun" PIdent ParamList ":" Type "{" FunBlock "}" ;
 
 FunctionBlock.       FunBlock ::= [Declaration] FunBody ;
 
 ParameterList.       ParamList ::= "(" [BasicDeclaration] ")" ;
 
-BasicDec.     BasicDeclaration ::= Ident [BasicArrayDimension] ":" Type ;
+BasicDec.     BasicDeclaration ::= PIdent [BasicArrayDimension] ":" Type ;
 
 B_ArrDim. BasicArrayDimension ::= "[" "]" ;
 
-D_Data.   DataDeclaration ::= "data" Ident "=" [ConsDecl] ;
+D_Data.   DataDeclaration ::= "data" PIdent "=" [ConsDecl] ;
 
 TypeComposition.   ConsDecl ::= CID "of" [Type] ;
 TypeConstructor.       ConsDecl ::= CID ;
@@ -53,11 +54,11 @@ P_Print.   ProgStmt ::= "print" Expr ;
 P_Block.   ProgStmt ::= "{" Block "}" ;
 P_Case.    ProgStmt ::= "case" Expr "of" "{" [Case] "}" ;
 
-L_Location.      Location ::= Ident [ArrayDimension] ;
+L_Location.      Location ::= PIdent [ArrayDimension] ;
 
 C_Case.     Case ::= CID VarList "=>" ProgStmt ;
 
-VL_List.   VarList ::= "(" [Ident] ")" ;
+VL_List.   VarList ::= "(" [PIdent] ")" ;
 VL_End.    VarList ::= ;
 
 B_Or.      Expr ::= Expr "||" BintTerm ;
@@ -89,11 +90,11 @@ Op_Mult.      Mulop ::= "*" ;
 Op_Divide.      Mulop ::= "/" ;
 
 IF_Expression.   IntFactor ::= "(" Expr ")" ;
-IF_Size.   IntFactor ::= "size" "(" Ident [BasicArrayDimension] ")" ;
+IF_Size.   IntFactor ::= "size" "(" PIdent [BasicArrayDimension] ")" ;
 IF_Float.  IntFactor ::= "float" "(" Expr ")" ;
 IF_Floor.  IntFactor ::= "floor" "(" Expr ")" ;
 IF_Ceil.   IntFactor ::= "ceil" "(" Expr ")" ;
-IF_ID.     IntFactor ::= Ident ModifierList ;
+IF_ID.     IntFactor ::= PIdent ModifierList ;
 IF_Data.    IntFactor ::= CID ConsArgumentList ;
 IF_Integer.    IntFactor ::= Integer ;
 IF_Real.   IntFactor ::= Double ;
@@ -116,7 +117,7 @@ separator BasicArrayDimension "" ;
 separator nonempty ConsDecl "|" ;
 separator nonempty Type "*" ;
 separator nonempty Case "|" ;
-separator nonempty Ident "," ;
+separator nonempty PIdent "," ;
 separator Expr "," ;
 
 terminator Declaration ";" ;

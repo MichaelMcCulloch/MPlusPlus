@@ -1,33 +1,36 @@
 module AST where
 
+type PIdent = ((Int, Int), String) --Line, Column
+type PCID = ((Int, Int) ,String)
+
 data M_prog = M_prog ([M_decl],[M_stmt])
             deriving (Eq, Show)
-data M_decl = M_var (String,[M_expr],M_type)
-            | M_fun (String,[(String,Int,M_type)],M_type,[M_decl],[M_stmt])
-            | M_data (String,[(String,[M_type])])
+data M_decl = M_var (PIdent,[M_expr],M_type)
+            | M_fun (PIdent,[(PIdent,Int,M_type)],M_type,[M_decl],[M_stmt])
+            | M_data (PIdent,[(PCID,[M_type])])
             deriving (Eq, Show)
-data M_stmt = M_ass (String,[M_expr],M_expr)
+data M_stmt = M_ass (PIdent,[M_expr],M_expr)
             | M_while (M_expr,M_stmt)
             | M_cond (M_expr,M_stmt,M_stmt)
-            | M_read (String,[M_expr])
+            | M_read (PIdent,[M_expr])
             | M_print M_expr
             | M_return M_expr
             | M_block ([M_decl],[M_stmt])
-            | M_case (M_expr,[(String,[String],M_stmt)])
+            | M_case (M_expr,[(PCID,[PIdent],M_stmt)])
             deriving (Eq, Show)
-data M_type = M_int | M_bool | M_real | M_char | M_type String
+data M_type = M_int | M_bool | M_real | M_char | M_type PIdent
             deriving (Eq, Show)
 data M_expr = M_ival Integer
             | M_rval Double
             | M_bval Bool
             | M_cval Char
-            | M_size (String,Int)
-            | M_id (String,[M_expr])
+            | M_size (PIdent,Int)
+            | M_id (PIdent,[M_expr])
             | M_app (M_operation,[M_expr])
             deriving (Eq, Show)
 data M_operation
-            = M_fn String --
-            | M_cid String
+            = M_fn PIdent --
+            | M_cid PCID
             | M_add | M_mul | M_sub | M_div
             | M_neg
             | M_lt | M_le | M_gt | M_ge | M_eq
@@ -43,12 +46,12 @@ showDecl d i =
   let r j = (concat $ replicate (j-1) "  ")
       in case d of
         M_var (name, array, type_) -> r i++ show d ++ ";\n"
-        M_fun (name, arguments, type_, ds, ss) -> r i ++ "M_fun (" ++ name ++ concatMap show arguments ++ show type_ ++ ")" ++ "{\n" ++
+        M_fun (((_,_),name), arguments, type_, ds, ss) -> r i ++ "M_fun (" ++ name ++ concatMap show arguments ++ show type_ ++ ")" ++ "{\n" ++
                                                   concatMap (`showDecl` (i+1)) ds ++ concatMap (`showStmt` (i+1)) ss ++ r (i+1)++ "};\n"
-        M_data (name, constructors) -> r i ++ "M_data (" ++ "\"" ++ name ++ "\"" ++ "[\n"++ concatMap (`showConstructors` (i+1)) constructors ++ r (i+1) ++"])\n"
+        M_data (((_,_),name), constructors) -> r i ++ "M_data (" ++ "\"" ++ name ++ "\"" ++ "[\n"++ concatMap (`showConstructors` (i+1)) constructors ++ r (i+1) ++"])\n"
 
-showConstructors::(String,[M_type]) -> Int -> String
-showConstructors (s, ts) i =
+showConstructors::(PCID,[M_type]) -> Int -> String
+showConstructors (((_,_),s), ts) i =
   let r = (concat $ replicate (i-1) "  ") in
       r ++ show s ++ concatMap show ts ++ ",\n"
 
@@ -65,8 +68,8 @@ showStmt s i =
         M_block (ds,ss) -> r i ++ "M_block (" ++ concatMap (`showDecl` (i+1)) ds ++ "\n" ++ concatMap (`showStmt` (i+1)) ss ++ r (i+1) ++ ");\n"
         M_case (e, cases) -> r i ++ "M_case (" ++ show e ++ "[\n" ++ concatMap (`showCases` (i+1)) cases ++ r (i+1) ++ "])\n"
 
-showCases::(String,[String],M_stmt) -> Int -> String
-showCases c@(case_, args, stmt) i =
+showCases::(PCID,[PIdent],M_stmt) -> Int -> String
+showCases c@(((_,_),case_), args, stmt) i =
   let r =  (concat $ replicate (i-1) "  ") in
       case stmt of
         M_block _ -> r ++ show case_ ++ show args ++ "\n" ++ showStmt stmt (i+1)
