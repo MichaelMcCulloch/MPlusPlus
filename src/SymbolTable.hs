@@ -8,27 +8,40 @@ import Control.Monad.Except
 data ScopeType = L_Prog | L_Fun M_type | L_Blk | L_Cases
                 deriving (Eq, Show)
 data SYM_DESC = ARGUMENT (PIdent,M_type,Int)
+              --Identifier, type, dimensions
               | VARIABLE (PIdent,M_type,Int)
+              --Identifier, type, dimensions
               | FUNCTION (PIdent,[(M_type,Int)],M_type)
+              --Identifier, arguments, type
               | DATATYPE PIdent
+              --Identifier
               | CONSTRUCTOR (PCID, [M_type], String)
+              --Identifier, type composition, parent datatype
               deriving (Eq, Show)
 data SYM_I_DESC = I_VARIABLE (Int,Int,M_type,Int)
+                -- level, offset, type, dimensions
                 | I_FUNCTION (Int,String,[(M_type,Int)],M_type)
+                -- level, code label, argument types and dimensions, type
                 | I_CONSTRUCTOR (Int,[M_type],String)
+                -- constructor number, type composition, parent
                 | I_TYPE [String]
+                --list of constructor names
                 deriving (Eq, Show)
 data SYM_VALUE = Var_attr (Int,M_type,Int)
+               --offset, type, dimensions
                | Fun_attr (String,[(M_type,Int)],M_type)
+               --code label, arg types and dimensions, type
                | Con_attr (Int,[M_type],String)
+               --constructor number
                | Type_attr [String]
+               -- list of constructor names
                deriving (Eq, Show)
 data SymbolTable = SymbolTable (ScopeType,Int,Int,[(String,SYM_VALUE)])
                 deriving (Eq, Show)
 
 type ST = [SymbolTable]
 
-type StateErr a = StateT Int (Either String) a
+type StateErr a = StateT (Int, Int) (Either String) a
 
 empty:: ST
 empty = []
@@ -53,35 +66,35 @@ insert symtab@(SymbolTable (sT, nLocal, nArgs, sL) : rest) desc =
     FUNCTION (pident@((line,column), name), argTypes, f_type)
       | (in_index_list name sL) -> err_defined pident
       | otherwise -> do
-          i <- get
-          modify (+1)
+          (f,c) <- get    --each function gets a unique number
+          modify (\(f,c) -> (f+1,c))
           return (SymbolTable (sT, nLocal, nArgs,
-            (name, Fun_attr ("fn_"++ show i, argTypes, f_type)):sL):rest)
+            (name, Fun_attr ("fn_"++ show f, argTypes, f_type)):sL):rest)
     DATATYPE pident@((line,column), name)
       | (in_index_list name sL) -> err_defined pident
-      | otherwise -> do
-          i <- get
-          modify (+1)
+      | otherwise ->
           return (SymbolTable (sT, nLocal, nArgs,
             (name, Type_attr []):sL):rest)
     CONSTRUCTOR (pident@((line,column), name), types, dataType)
     {-get description for parent, then create a new symbol for parent dataype which includes this constructor-}
       | (in_index_list name sL) -> err_defined pident
       | otherwise -> do
-        desc <- lookup_ ((line,column),dataType) symtab
+        desc <- lookup_ ((line,column), dataType) symtab
         case desc of
-          I_TYPE constr -> let
-            ind = length constr
-            conAttr = (name, Con_attr (ind, types, dataType)):sL
-            datAttr = (dataType, Type_attr (constr ++ [name])):conAttr
-            in return (SymbolTable (sT, nLocal, nArgs, datAttr):rest)
+          I_TYPE constr -> do
+            (f,c) <- get    --each constructor gets a unique number
+            modify (\(f,c) -> (f,c+1))
+            let
+              conAttr = (name, Con_attr (c, types, dataType)):sL
+              datAttr = (dataType, Type_attr (constr ++ [name])):conAttr
+              in return (SymbolTable (sT, nLocal, nArgs, datAttr):rest)
           I_VARIABLE _ -> err_notAConstructor pident
           I_FUNCTION _ -> err_notAConstructor pident
           I_CONSTRUCTOR _ -> err_notAConstructor pident
   where
     err_defined ((line,column), str) = throwError ("Error:" ++ show line ++ ":" ++ show column ++ ": <" ++ str ++ "> is already defined.") :: StateErr ST
     err_notAConstructor ((line,column), str) = throwError ("Error:" ++ show line ++ ":" ++ show column ++ ": <" ++ str ++ "> is not a constructor of any type") :: StateErr ST
-    {-in_index_list will incorrectly fail if a local VARIABLE and a FUNCTION are declared with same name in scope. 
+    {-in_index_list will incorrectly fail if a local VARIABLE and a FUNCTION are declared with same name in scope.
       Intended is that only duplicate FUNCTION names are forbidden-}
     in_index_list _ [] = False
     in_index_list str ((x,_):xs)

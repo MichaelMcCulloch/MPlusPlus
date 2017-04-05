@@ -6,7 +6,9 @@ import AbsM
 import AST
 import ASTConv
 import ErrM
-import GenSymTab
+import SemCheck
+
+import Text.PrettyPrint.GenericPretty
 
 import System.Environment
 
@@ -17,7 +19,7 @@ showAst s = do
   let tokens = myLexer fConts
       pTree = pProg tokens
       in case pTree of
-        Ok prog -> putStrLn $ showProg $ transProg prog
+        Ok prog -> pp $ transProg prog
         Bad err -> print err
 
 test:: String -> IO ()
@@ -28,10 +30,10 @@ test s = do
       in case pTree of
         Ok prog -> let
           ast = transProg prog
-          st = genSymbolTable ast
-          in case st of
+          ir = generateIR ast
+          in case ir of
               Left err -> print err
-              Right symTab -> print symTab
+              Right iprog -> pp iprog
         Bad err -> print err
 
 main :: IO ()
@@ -46,8 +48,8 @@ main = do
           in case pTree of
             Ok prog -> let
               ast = transProg prog
-              st = genSymbolTable ast
+              st = generateIR ast
               in case st of
                   Left err -> print err
-                  Right symTab -> print symTab
+                  Right iprog -> pp iprog
             Bad err -> print err

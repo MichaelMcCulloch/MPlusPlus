@@ -4,11 +4,11 @@ var x:int;
      fun g(a[][]:int, b:int):int
         {   var y :int;
             begin
-              a[i][j] := f(x,y);
-              return a;
+              a[1][2] := f(x,y);
+              return a[1][2];
             end
         };
-        return a;
+        return a[1][2];
   };
 var v:int;
 

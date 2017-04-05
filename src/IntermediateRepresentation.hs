@@ -1,10 +1,16 @@
+{-# LANGUAGE DeriveGeneric #-}
 module IntermediateRepresentation where
+
+import Text.PrettyPrint.GenericPretty
 
 
 data I_prog = I_PROG ([I_fbody],Int,[(Int,[I_expr])],[I_stmt])
+            deriving (Eq, Generic, Show)
 -- functions, number of local variables, array descriptions, body.
+
 data I_fbody = I_FUN (String,[I_fbody],Int,Int,[(Int,[I_expr])],[I_stmt])
--- functions, number of local variables, number of arguments
+            deriving (Eq, Generic, Show)
+-- code label, functions, number of local variables, number of arguments
 -- array descriptions, body
 data I_stmt = I_ASS (Int,Int,[I_expr],I_expr)
             -- level, offset, array indexes, expressions
@@ -24,9 +30,10 @@ data I_stmt = I_ASS (Int,Int,[I_expr],I_expr)
             | I_PRINT_C I_expr
             | I_RETURN I_expr
             | I_BLOCK ([I_fbody],Int,[(Int,[I_expr])],[I_stmt])
+            deriving (Eq, Generic, Show)
             -- functions, number of local variables, array descriptions, body.
-data I_expr = I_IVAL Int
-            | I_RVAL Float
+data I_expr = I_IVAL Integer
+            | I_RVAL Double
             | I_BVAL Bool
             | I_CVAL Char
             | I_ID (Int,Int,[I_expr])
@@ -37,6 +44,7 @@ data I_expr = I_IVAL Int
             -- of a function: level, offset
             | I_SIZE (Int,Int,Int)
             -- for retrieving the dimension of an array: level,offset,dimension
+            deriving (Eq, Generic, Show)
 data I_opn = I_CALL (String,Int)
             -- label and level
             | I_CONS (Int,Int)
@@ -47,3 +55,10 @@ data I_opn = I_CALL (String,Int)
             | I_LT_F | I_LE_F | I_GT_F | I_GE_F | I_EQ_F
             | I_LT_C | I_LE_C | I_GT_C | I_GE_C | I_EQ_C
             | I_NOT | I_AND | I_OR | I_FLOAT | I_FLOOR | I_CEIL
+            deriving (Eq, Generic, Show)
+
+instance Out I_prog
+instance Out I_fbody
+instance Out I_expr
+instance Out I_stmt
+instance Out I_opn
