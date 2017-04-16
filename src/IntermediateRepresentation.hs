@@ -11,7 +11,7 @@ data I_prog = I_PROG ([I_fbody],Int,[(Int,[I_expr])],[I_stmt])
 data I_fbody = I_FUN (String,[I_fbody],Int,Int,[(Int,[I_expr])],[I_stmt])
             deriving (Eq, Generic, Show)
 -- code label, functions, number of local variables, number of arguments
--- array descriptions, body
+-- local array descriptions, body
 data I_stmt = I_ASS (Int,Int,[I_expr],I_expr)
             -- level, offset, array indexes, expressions
             | I_WHILE (I_expr,I_stmt)

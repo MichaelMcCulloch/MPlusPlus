@@ -20,7 +20,7 @@ showAst s = do
       pTree = pProg tokens
       in case pTree of
         Ok prog -> pp $ transProg prog
-        Bad err -> print err
+        Bad err -> putStrLn err
 
 test:: String -> IO ()
 test s = do
@@ -32,9 +32,9 @@ test s = do
           ast = transProg prog
           ir = generateIR ast
           in case ir of
-              Left err -> print err
+              Left err -> putStrLn err
               Right iprog -> pp iprog
-        Bad err -> print err
+        Bad err -> putStrLn err
 
 main :: IO ()
 main = do
@@ -50,6 +50,6 @@ main = do
               ast = transProg prog
               st = generateIR ast
               in case st of
-                  Left err -> print err
+                  Left err -> putStrLn err
                   Right iprog -> pp iprog
-            Bad err -> print err
+            Bad err -> putStrLn err

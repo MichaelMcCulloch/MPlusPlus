@@ -21,7 +21,7 @@ data M_stmt = M_ass (PIdent,[M_expr],M_expr) --identifier, at location := expr
             | M_block ([M_decl],[M_stmt])
             | M_case (M_expr,[(PCID,[PIdent],M_stmt)]) --case on an expression, which evaluates to a constructor, list of arguments must match constructor composite types
             deriving (Eq, Generic, Show)
-data M_type = M_int | M_bool | M_real | M_char | M_type PIdent deriving (Show, Generic)
+data M_type = M_int | M_bool | M_real | M_char | M_type PIdent deriving (Generic)
 data M_expr = M_ival Integer
             | M_rval Double
             | M_bval Bool
@@ -54,3 +54,10 @@ instance Eq M_type where
   (==) M_char M_char = True
   (==) (M_type ((_,_), t1)) (M_type ((_,_), t2)) = t1 == t2
   (==) _ _ = False
+
+instance Show M_type where
+  show M_int = "M_int"
+  show M_bool = "M_bool"
+  show M_real = "M_real"
+  show M_char = "M_char"
+  show (M_type ((_,_),t)) = "M_type '" ++ t ++ "'"
