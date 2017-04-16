@@ -2,6 +2,7 @@ module CodeGeneration where
 
 import Data.List
 import IntermediateRepresentation
+import Control.Monad.State.Lazy
 
 type Offset = Int
 data Register = FP | SP | CP | HP
@@ -12,8 +13,11 @@ data Operation = ADD_F | SUB_F | DIV_F | MUL_F | NEG_F | FLOOR | CEIL
                | LT | LE | EQ | GE | GT
                | AND | OR | NOT
                deriving (Show)
+
+data BOOLEAN = TRUE | FALSE
+            deriving (Show)
 data Instruction  = LOAD_R Register --load places something ontop of the stack
-                  | LOAD_F Double | LOAD_I Int | LOAD_B Bool | LOAD_C Char     -- litterals
+                  | LOAD_F Double | LOAD_I Integer | LOAD_B BOOLEAN | LOAD_C Char     -- litterals
                   | LOAD_O Offset   -- offset from pointer (on stack)
                   | LOAD_OS         -- offset (on stack) from pointer (on stack)
                   | LOAD_H          -- %hp (on stack) replaced by heap record
@@ -35,6 +39,13 @@ data Instruction  = LOAD_R Register --load places something ontop of the stack
                   | PRINT_F | PRINT_I | PRINT_B | PRINT_C
                   | HALT
                   deriving (Show)
+
+data Code = L String Instruction
+          | I Instruction
+
+instance Show Code where
+  show (L str instr) = show str ++ ":\t" ++ show instr
+  show (I instr) = "\t\t\t" ++ show instr
 instance Show Register where
   show FP = "%fp"
   show SP = "%sp"
@@ -42,90 +53,246 @@ instance Show Register where
   show HP = "%hp"
 
 codeGen::I_prog -> String
-codeGen prog = intercalate "\n" $ transProg prog
-  -- (intercalate "\n") . (map show) $ transProg prog
+codeGen prog = intercalate "\n" . map show $ evalState (transProg prog) 0
 
-transProg::I_prog -> [String]
+{-TODO:
+  Allocate local Variable space
+  Deallocate Stack-}
+transProg:: I_prog -> State Int [Code]
 transProg (I_PROG (funs, nVars, arrDesc, body)) = prog where
-  prog = progStart ++ progBody ++ progEnd ++ functions
-  progStart = [ "LOAD_R %sp", -- put the stack pointer on the stack
-                "LOAD_R %sp",
-                "STORE_R %fp", -- and put it in the frame pointer
-                "ALLOC " ++ show nVars] -- alocate space for local variables
-  progBody = concatMap transBody body
-  progEnd = undefined-- deallocate stack
-  functions = concatMap transFun funs
+  prog = do
+    b <- progBody
+    f <- functions
+    return $ progStart ++ b ++ progEnd ++ f
+  progStart = [ I (LOAD_R SP), -- put the stack pointer on the stack
+                I (LOAD_R SP),
+                I (STORE_R FP), -- and put it in the frame pointer
+                I (ALLOC nVars), -- alocate space for local variables
+                I (LOAD_I (fromIntegral (nVars + 2))), -- TODO this is probably wrong: init deallocation counter
+                undefined ] -- TODO allocate space for local arrays and update counter
+  progBody = do
+    body' <- mapM transBody body
+    return $ concat body'
+  progEnd = [I (ALLOC (-nVars-1)), I HALT] --TODO deallocate stack !!! Use deallocation counter
+  functions = do
+    funs' <- mapM transFun funs
+    return $ concat funs'
 
-transFun::I_fbody -> [String]
-transFun (I_FUN (lbl,funs,nArgs,nLoc,varDesc,stmts)) = undefined
+{-TODO:
+  Allocate local Variable space
+  Deallocate Stack-}
+transFun:: I_fbody -> State Int [Code]
+transFun (I_FUN (lbl,funs,nArgs,nLoc,varDesc,stmts)) = fun where
+  fun = do
+    body <- mapM transBody stmts
+    return $ initFun ++ concat body ++ endFun
+  initFun = [ L lbl (LOAD_R SP), --set frame pointer to top of the stack and set label
+              I (ALLOC nLoc), -- allocate local storage
+              I (LOAD_I (fromIntegral (nLoc + 2))), -- init deallocation counter
+              undefined] -- TODO allocate space for local arrays and update counter
+  endFun = [I (LOAD_R FP), -- write return into first arg slot
+            I (STORE_O (-(nArgs+3))),
+            I (LOAD_R FP), -- write return pointer into second argument slot
+            I (LOAD_O 0),
+            I (LOAD_R FP),
+            I (STORE_O (-(nArgs+2))),
+            I (LOAD_R FP), -- deallocate local storage
+            I (LOAD_O (nLoc+1)),
+            I (APP NEG),
+            I (ALLOC_S),
+            I (STORE_R FP), -- restore old frame pointers
+            I (ALLOC (-nArgs)), -- cleanup the argument storage leaving only the return value & pointer on stack
+            I (JUMP_S)] -- return
 
-
-
-
-transBody::I_stmt -> [String]
+{-TODO:
+  arrayDescriptions
+  while loop
+  conditional, with labels
+  cases
+  blocks-}
+transBody:: I_stmt -> State Int [Code]
 transBody stmt = case stmt of
-  I_ASS (lvl, off, arrDesc, expr) -> undefined
-  I_WHILE (expr, stmt) -> undefined
-  I_COND (expr, thenStmt, elseStmt) -> undefined
-  I_CASE (expr, cases) -> undefined
-  I_READ_B (lvl, off, arrDesc) -> undefined
-  I_READ_I (lvl, off, arrDesc) -> undefined
-  I_READ_F (lvl, off, arrDesc) -> undefined
-  I_READ_C (lvl, off, arrDesc) -> undefined
-  I_PRINT_B expr -> undefined
-  I_PRINT_I expr -> undefined
-  I_PRINT_F expr -> undefined
-  I_PRINT_C expr -> undefined
-  I_RETURN expr -> undefined
-  I_BLOCK (funs, nVars, varDesc, stmts) -> undefined
+  I_ASS (lvl, off, arrDesc, expr) -> do
+    expr' <- transExpr expr
+    ap <- calcAccessPointer lvl
+    return $ expr' ++ ap ++ [I (STORE_O off)] -- TODO array shit
+  I_WHILE (expr, stmt) -> undefined -- TODO
+  I_COND (expr, thenStmt, elseStmt) -> undefined --TODO
+  I_CASE (expr, cases) -> undefined --TODO
+  I_READ_B (lvl, off, arrDesc) -> do
+    ap <- calcAccessPointer lvl
+    return $ [I READ_B] ++ ap ++ [I (STORE_O off)] -- array shit
+  I_READ_I (lvl, off, arrDesc) -> do
+    ap <- calcAccessPointer lvl
+    return $ [I READ_I] ++ ap ++ [I (STORE_O off)] -- array shit
+  I_READ_F (lvl, off, arrDesc) -> do
+    ap <- calcAccessPointer lvl
+    return $ [I READ_F] ++ ap ++ [I (STORE_O off)] -- array shit
+  I_READ_C (lvl, off, arrDesc) -> do
+    ap <- calcAccessPointer lvl
+    return $ [I READ_C] ++ ap ++ [I (STORE_O off)] -- array shit
+  I_PRINT_B expr -> do
+    expr' <- transExpr expr
+    return $ expr' ++ [I PRINT_B] -- evaluate expression, then print it
+  I_PRINT_I expr -> do
+    expr' <- transExpr expr
+    return $ expr' ++ [I PRINT_I] -- evaluate expression, then print it
+  I_PRINT_F expr -> do
+    expr' <- transExpr expr
+    return $ expr' ++ [I PRINT_F] -- evaluate expression, then print it
+  I_PRINT_C expr -> do
+    expr' <- transExpr expr
+    return $ expr' ++ [I PRINT_C] -- evaluate expression, then print it
+  I_RETURN expr -> transExpr expr
+  I_BLOCK (funs, nVars, varDesc, stmts) -> undefined --TODO
 
-transExpr::I_expr -> [String]
+{-TODO:
+  Array descriptions
+  Pass by reference --verify
+  Size-}
+transExpr:: I_expr -> State Int [Code]
 transExpr expr = case expr of
-  I_IVAL i -> ["LOAD_I " ++ show i] -- litterals
-  I_BVAL True -> ["LOAD_B TRUE"]
-  I_BVAL False -> ["LOAD_B FALSE"]
-  I_CVAL c -> ["LOAD_C " ++ show c]
-  I_RVAL f -> ["LOAD_R " ++ show f]
-  I_ID (lvl, off, arrDesc) -> calcAccessPointer lvl ++ ["LOAD_O " ++ show off] {- something with the array -}
+  I_IVAL i -> return [I (LOAD_I i)] -- litterals
+  I_BVAL True -> return [I (LOAD_B TRUE)]
+  I_BVAL False -> return [I (LOAD_B FALSE)]
+  I_CVAL c -> return [I (LOAD_C c)]
+  I_RVAL f -> return [I (LOAD_F f)]
+  I_ID (lvl, off, arrDesc) -> do
+    ap <- calcAccessPointer lvl
+    return $ ap ++ [I (LOAD_O off)] {- TODO something with the array -}
   I_APP (op, args) -> case (op, args) of -- evaluate arguments to top of stack, then evaluate
-    (I_CALL (label, lvl), a) -> concatMap transExpr args ++ calcAccessPointer lvl ++ {-set up stack for call. -} []++["JUMP " ++ label]
-    (I_CONS (lvl,off), []) -> undefined --something way more fun.
-    (I_ADD_I, [e1, e2]) -> let
-          e2' = transExpr e2
-          e1' = transExpr e1
-          in e1' ++ e2' ++ ["APP ADD_I"]
-    (I_MUL_I, []) ->
-    (I_SUB_I, []) ->
-    (I_DIV_I, []) ->
-    (I_NEG_I, []) ->
-    (I_ADD_F, []) ->
-    (I_MUL_F, []) ->
-    (I_SUB_F, []) ->
-    (I_DIV_F, []) ->
-    (I_NEG_F, []) ->
-    (I_LT_I, []) ->
-    (I_LE_I, []) ->
-    (I_GT_I, []) ->
-    (I_GE_I, []) ->
-    (I_EQ_I, []) ->
-    (I_LT_F, []) ->
-    (I_LE_F, []) ->
-    (I_GT_F, []) ->
-    (I_GE_F, []) ->
-    (I_EQ_F, []) ->
-    (I_LT_C, []) ->
-    (I_LE_C, []) ->
-    (I_GT_C, []) ->
-    (I_GE_C, []) ->
-    (I_EQ_C, []) ->
-    (I_NOT, []) ->
-    (I_AND, []) ->
-    (I_OR, []) ->
-    (I_FLOAT, []) ->
-    (I_FLOOR, []) ->
-    (I_CEIL, []) ->
-  I_REF (lvl, off) -> -- put pointer to the array ontop of the stack.
-  I_SIZE (lvl, off, dim) -> -- something with the array.
+    (I_CALL (label, lvl), a) -> do
+      args' <- mapM transExpr args
+      ap <- calcAccessPointer lvl
+      return $  concat args' ++ -- load arguments
+          [I (ALLOC 1)] ++ -- make space for return
+          ap ++ -- get the access pointer.
+          [ I (LOAD_R FP), -- get the current frame pointer
+            I (LOAD_R CP), -- set return address
+            I (JUMP label)] -- go to the function, after which, there will be only the result of this function on the stack
+    (I_CONS (conNum, nArgs), a) -> undefined --something way more fun on the heap.
+    (I_ADD_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP ADD)]
+    (I_MUL_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP MUL)]
+    (I_SUB_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP SUB)]
+    (I_DIV_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP DIV)]
+    (I_NEG_I, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP NEG)]
+    (I_ADD_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP ADD_F)]
+    (I_MUL_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP MUL_F)]
+    (I_SUB_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP SUB_F)]
+    (I_DIV_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP DIV_F)]
+    (I_NEG_F, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP NEG_F)]
+    (I_LT_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP CodeGeneration.LT)]
+    (I_LE_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP LE)]
+    (I_GT_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP CodeGeneration.GT)]
+    (I_GE_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP GE)]
+    (I_EQ_I, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP CodeGeneration.EQ)]
+    (I_LT_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP LT_F)]
+    (I_LE_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP LE_F)]
+    (I_GT_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP GT_F)]
+    (I_GE_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP GE_F)]
+    (I_EQ_F, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP EQ_F)]
+    (I_LT_C, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP LT_C)]
+    (I_LE_C, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP LE_C)]
+    (I_GT_C, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP GT_C)]
+    (I_GE_C, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP GE_C)]
+    (I_EQ_C, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP EQ_C)]
+    (I_NOT, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP NOT)]
+    (I_AND, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP AND)]
+    (I_OR, [e1, e2]) -> do
+          e2' <- transExpr e2
+          e1' <- transExpr e1
+          return $ e1' ++ e2' ++ [ I (APP OR)]
+    (I_FLOAT, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP FLOAT)]
+    (I_FLOOR, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP FLOOR)]
+    (I_CEIL, [e]) -> do
+          e' <- transExpr e
+          return $ e' ++ [ I (APP CEIL)]
+  I_REF (lvl, off) -> do
+    ap <- calcAccessPointer lvl
+    return $ ap ++ [I (LOAD_O off)] -- TODO verify
+  I_SIZE (lvl, off, dim) -> undefined -- TODO something with the array.
 
-calcAccessPointer::Int -> [String]
-calcAccessPointer n = "LOADA_R %fp" : replicate n "LOAD_O -2"
+calcAccessPointer:: Int -> State Int [Code]
+calcAccessPointer n = return $ I (LOAD_R FP) : replicate n (I (LOAD_O (-2)))
