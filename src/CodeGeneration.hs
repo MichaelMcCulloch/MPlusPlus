@@ -15,7 +15,11 @@ data Operation = ADD_F | SUB_F | DIV_F | MUL_F | NEG_F | FLOOR | CEIL
                deriving (Show)
 
 data BOOLEAN = TRUE | FALSE
-            deriving (Show)
+
+instance Show BOOLEAN where
+  show TRUE = "true"
+  show FALSE = "false"
+
 data Instruction  = LOAD_R Register --load places something ontop of the stack
                   | LOAD_F Double | LOAD_I Integer | LOAD_B BOOLEAN | LOAD_C Char     -- litterals
                   | LOAD_O Offset   -- offset from pointer (on stack)
@@ -162,15 +166,14 @@ transBody stmt = case stmt of
   I_COND (expr, thenStmt, elseStmt) -> do
     i <- get
     modify (+1)
-    thenPart <- transBody thenStmt
-    I instr:as <- transBody elseStmt
-    let elsePart = L ("else" ++ show i) instr:as
     test <- transExpr expr
-    return $ test ++
-              [I (JUMP_C ("else"++ show i))] ++ --if false jump to else part
-              thenPart ++ --otherwise run then part and jump after conditional
-              elsePart ++
-              [I (JUMP ("end"++ show i))]
+    thenPart <- transBody thenStmt
+    elsePart <- transBody elseStmt
+    let (I instr):as = elsePart
+        elsePart' = (L ("else"++show i) instr):as
+    return $ test ++ [I (JUMP_C ("else" ++ show i))] ++ --test and jump
+             thenPart ++ [I (JUMP ("end" ++ show i))]++
+             elsePart' ++ [L ("end" ++ show i) (ALLOC 0)]
   I_CASE (expr, cases) -> undefined --TODO
   I_READ_B (lvl, off, arrDesc) -> do
     ap <- calcAccessPointer lvl

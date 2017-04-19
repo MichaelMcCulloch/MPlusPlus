@@ -37,6 +37,7 @@ test s = do
               Right iprog -> do
                 let asm = codeGen iprog
                 writeFile (s ++ ".AM") asm
+                putStrLn ("Output: " ++ s ++ ".AM")
                 putStrLn asm
         Bad err -> putStrLn err
 

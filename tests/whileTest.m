@@ -1,5 +1,6 @@
+var b:bool;
 var x:int;
-x := 6;
-while (x =< 10) do
-  x := x+1;
+b:= false;
+if b then x:= 10
+  else x:= 20;
 print x;
