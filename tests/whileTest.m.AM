@@ -1,0 +1,26 @@
+	LOAD_R %sp
+	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 1
+	LOAD_I 3
+	LOAD_I 6
+	LOAD_R %fp
+	STORE_O 1
+test0:	LOAD_R %fp
+	LOAD_O 1
+	LOAD_I 10
+	APP LE
+	JUMP_C end0
+	LOAD_R %fp
+	LOAD_O 1
+	LOAD_I 1
+	APP ADD
+	LOAD_R %fp
+	STORE_O 1
+	JUMP test0
+end0:	ALLOC 0
+	LOAD_R %fp
+	LOAD_O 1
+	PRINT_I 
+	ALLOC -2
+	HALT 

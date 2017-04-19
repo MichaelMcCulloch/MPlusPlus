@@ -1,0 +1,45 @@
+			LOAD_R %sp
+			LOAD_R %sp
+			STORE_R %fp
+			ALLOC 3
+			LOAD_I 5
+			LOAD_I 1
+			LOAD_R %fp
+			STORE_O 1
+			LOAD_R %fp
+			LOAD_O 1
+			PRINT_I
+			ALLOC 1
+			LOAD_R %fp
+			LOAD_R %fp
+			LOAD_R %cp
+			JUMP fn_1
+			LOAD_R %fp
+			STORE_O 1
+			LOAD_R %fp
+			LOAD_O 1
+			PRINT_I
+			ALLOC (-4)
+			HALT
+fn_1:	LOAD_R %sp
+			STORE_R %fp
+			ALLOC 0
+			LOAD_I 2
+			LOAD_R %fp
+			LOAD_O (-2)
+			LOAD_O 1
+			LOAD_I 100
+			APP ADD
+			LOAD_R %fp
+			STORE_O (-3)
+			LOAD_R %fp
+			LOAD_O 0
+			LOAD_R %fp
+			STORE_O (-2)
+			LOAD_R %fp
+			LOAD_O 1
+			APP NEG
+			ALLOC_S
+			STORE_R %fp
+			ALLOC 0
+			JUMP_S

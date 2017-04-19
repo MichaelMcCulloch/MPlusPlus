@@ -7,6 +7,7 @@ import AST
 import ASTConv
 import ErrM
 import SemCheck
+import CodeGeneration
 
 import Text.PrettyPrint.GenericPretty
 
@@ -19,7 +20,7 @@ showAst s = do
   let tokens = myLexer fConts
       pTree = pProg tokens
       in case pTree of
-        Ok prog -> pp $ transProg prog
+        Ok prog -> pp $ ASTConv.transProg prog
         Bad err -> putStrLn err
 
 test:: String -> IO ()
@@ -29,11 +30,14 @@ test s = do
       pTree = pProg tokens
       in case pTree of
         Ok prog -> let
-          ast = transProg prog
+          ast = ASTConv.transProg prog
           ir = generateIR ast
           in case ir of
               Left err -> putStrLn err
-              Right iprog -> pp iprog
+              Right iprog -> do
+                let asm = codeGen iprog
+                writeFile (s ++ ".AM") asm
+                putStrLn asm
         Bad err -> putStrLn err
 
 main :: IO ()
@@ -47,9 +51,9 @@ main = do
           pTree = pProg tokens
           in case pTree of
             Ok prog -> let
-              ast = transProg prog
+              ast = ASTConv.transProg prog
               st = generateIR ast
               in case st of
                   Left err -> putStrLn err
-                  Right iprog -> pp iprog
+                  Right iprog -> writeFile (fname ++ ".AM") (codeGen iprog)
             Bad err -> putStrLn err

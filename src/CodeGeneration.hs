@@ -38,14 +38,46 @@ data Instruction  = LOAD_R Register --load places something ontop of the stack
                   | READ_F | READ_I | READ_B | READ_C
                   | PRINT_F | PRINT_I | PRINT_B | PRINT_C
                   | HALT
-                  deriving (Show)
+
+instance Show Instruction where
+  show (LOAD_R reg) = "LOAD_R " ++ show reg
+  show (LOAD_F double) = "LOAD_F "  ++ show double
+  show (LOAD_I integer) = "LOAD_I " ++ show integer
+  show (LOAD_B boolean) = "LOAD_B " ++ show boolean
+  show (LOAD_C char) = "LOAD_C " ++ show char
+  show (LOAD_O offset) = "LOAD_O " ++ show offset
+  show (LOAD_OS) = "LOAD_OS "
+  show (LOAD_H) = "LOAD_H "
+  show (LOAD_HO offset) = "LOAD_HO " ++ show offset
+  show (STORE_R register) = "STORE_R " ++ show register
+  show (STORE_O offset) = "STORE_O " ++ show offset
+  show (STORE_OS) = "STORE_OS "
+  show (STORE_H int) = "STORE_H " ++ show int
+  show (STORE_HO offset) = "STORE_HO " ++ show offset
+  show (JUMP string) = "JUMP " ++ string
+  show (JUMP_S) = "JUMP_S "
+  show (JUMP_C string) = "JUMP_C " ++ string
+  show (JUMP_O) = "JUMP_O "
+  show (ALLOC int) = "ALLOC " ++ show int
+  show (ALLOC_S) = "ALLOC_S "
+  show (ALLOC_H int) = "ALLOC_H " ++ show int
+  show (APP operation) = "APP " ++ show operation
+  show (READ_F) = "READ_F "
+  show (READ_I) = "READ_I "
+  show (READ_B) = "READ_B "
+  show (READ_C) = "READ_C "
+  show (PRINT_F) = "PRINT_F "
+  show (PRINT_I) = "PRINT_I "
+  show (PRINT_B) = "PRINT_B "
+  show (PRINT_C) = "PRINT_C "
+  show (HALT) = "HALT "
 
 data Code = L String Instruction
           | I Instruction
 
 instance Show Code where
-  show (L str instr) = show str ++ ":\t" ++ show instr
-  show (I instr) = "\t\t\t" ++ show instr
+  show (L str instr) = id str ++ ":\t" ++ show instr
+  show (I instr) = "\t" ++ show instr
 instance Show Register where
   show FP = "%fp"
   show SP = "%sp"
@@ -68,8 +100,8 @@ transProg (I_PROG (funs, nVars, arrDesc, body)) = prog where
                 I (LOAD_R SP),
                 I (STORE_R FP), -- and put it in the frame pointer
                 I (ALLOC nVars), -- alocate space for local variables
-                I (LOAD_I (fromIntegral (nVars + 2))), -- TODO this is probably wrong: init deallocation counter
-                undefined ] -- TODO allocate space for local arrays and update counter
+                I (LOAD_I (fromIntegral (nVars + 2))) -- TODO this is probably wrong: init deallocation counter
+                ]++[] -- TODO allocate space for local arrays and update counter
   progBody = do
     body' <- mapM transBody body
     return $ concat body'
@@ -86,10 +118,10 @@ transFun (I_FUN (lbl,funs,nArgs,nLoc,varDesc,stmts)) = fun where
   fun = do
     body <- mapM transBody stmts
     return $ initFun ++ concat body ++ endFun
-  initFun = [ L lbl (LOAD_R SP), --set frame pointer to top of the stack and set label
+  initFun = [ L lbl (LOAD_R SP), I (STORE_R FP), --set frame pointer to top of the stack and set label
               I (ALLOC nLoc), -- allocate local storage
-              I (LOAD_I (fromIntegral (nLoc + 2))), -- init deallocation counter
-              undefined] -- TODO allocate space for local arrays and update counter
+              I (LOAD_I (fromIntegral (nLoc + 2))) -- init deallocation counter
+              ] ++ [] -- TODO allocate space for local arrays and update counter
   endFun = [I (LOAD_R FP), -- write return into first arg slot
             I (STORE_O (-(nArgs+3))),
             I (LOAD_R FP), -- write return pointer into second argument slot
@@ -116,8 +148,29 @@ transBody stmt = case stmt of
     expr' <- transExpr expr
     ap <- calcAccessPointer lvl
     return $ expr' ++ ap ++ [I (STORE_O off)] -- TODO array shit
-  I_WHILE (expr, stmt) -> undefined -- TODO
-  I_COND (expr, thenStmt, elseStmt) -> undefined --TODO
+  I_WHILE (expr, stmt) -> do --Code evaluates expression, then tests it, then jumps after loop if false
+    i <- get
+    modify (+1)
+    body <- transBody stmt
+    test <- transExpr expr
+    let I instr:as = test
+        test' = L ("test" ++ show i) instr:as
+        body' = body ++ [L ("end" ++ show i) (ALLOC 0)]
+    return $ test' ++
+           [I (JUMP_C ("end" ++ show i))] ++
+           body ++ [I (JUMP ("test" ++ show i)), L ("end" ++ show i) (ALLOC 0)]
+  I_COND (expr, thenStmt, elseStmt) -> do
+    i <- get
+    modify (+1)
+    thenPart <- transBody thenStmt
+    I instr:as <- transBody elseStmt
+    let elsePart = L ("else" ++ show i) instr:as
+    test <- transExpr expr
+    return $ test ++
+              [I (JUMP_C ("else"++ show i))] ++ --if false jump to else part
+              thenPart ++ --otherwise run then part and jump after conditional
+              elsePart ++
+              [I (JUMP ("end"++ show i))]
   I_CASE (expr, cases) -> undefined --TODO
   I_READ_B (lvl, off, arrDesc) -> do
     ap <- calcAccessPointer lvl
@@ -164,7 +217,7 @@ transExpr expr = case expr of
     (I_CALL (label, lvl), a) -> do
       args' <- mapM transExpr args
       ap <- calcAccessPointer lvl
-      return $  concat args' ++ -- load arguments
+      return $ concat (reverse args') ++ -- load arguments
           [I (ALLOC 1)] ++ -- make space for return
           ap ++ -- get the access pointer.
           [ I (LOAD_R FP), -- get the current frame pointer
