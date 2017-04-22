@@ -1,0 +1,116 @@
+	LOAD_R %sp
+	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 1
+	LOAD_I -2
+	LOAD_I 7
+	LOAD_R %fp
+	STORE_O 1
+	ALLOC 1
+	LOAD_R %fp
+	LOAD_R %fp
+	LOAD_R %cp
+	JUMP fn_1
+	LOAD_R %fp
+	STORE_O 1
+	LOAD_R %fp
+	LOAD_O 1
+	PRINT_I 
+	ALLOC_S 
+	HALT 
+fn_1:	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 0
+	LOAD_I -2
+	ALLOC 1
+	LOAD_R %fp
+	LOAD_R %fp
+	LOAD_R %cp
+	JUMP fn_2
+	LOAD_I 1
+	APP ADD
+	LOAD_R %fp
+	STORE_O -3
+	LOAD_R %fp
+	LOAD_O 0
+	LOAD_R %fp
+	STORE_O -2
+	LOAD_R %fp
+	LOAD_O 1
+	ALLOC_S 
+	STORE_R %fp
+	ALLOC 0
+	JUMP_S 
+fn_2:	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 0
+	LOAD_I -2
+	ALLOC 1
+	LOAD_R %fp
+	LOAD_R %fp
+	LOAD_R %cp
+	JUMP fn_4
+	LOAD_I 1
+	APP ADD
+	LOAD_R %fp
+	STORE_O -3
+	LOAD_R %fp
+	LOAD_O 0
+	LOAD_R %fp
+	STORE_O -2
+	LOAD_R %fp
+	LOAD_O 1
+	ALLOC_S 
+	STORE_R %fp
+	ALLOC 0
+	JUMP_S 
+fn_4:	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 0
+	LOAD_I -2
+	LOAD_R %fp
+	LOAD_O -2
+	LOAD_O -2
+	LOAD_O -2
+	LOAD_O 1
+	ALLOC 1
+	LOAD_R %fp
+	LOAD_O -2
+	LOAD_O -2
+	LOAD_R %fp
+	LOAD_R %cp
+	JUMP fn_3
+	LOAD_I 1
+	APP ADD
+	LOAD_R %fp
+	STORE_O -3
+	LOAD_R %fp
+	LOAD_O 0
+	LOAD_R %fp
+	STORE_O -2
+	LOAD_R %fp
+	LOAD_O 1
+	ALLOC_S 
+	STORE_R %fp
+	ALLOC 0
+	JUMP_S 
+fn_3:	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 0
+	LOAD_I -2
+	LOAD_R %fp
+	LOAD_O -4
+	LOAD_I 1
+	APP ADD
+	LOAD_R %fp
+	STORE_O -4
+	LOAD_R %fp
+	LOAD_O 0
+	LOAD_R %fp
+	STORE_O -3
+	LOAD_R %fp
+	LOAD_O 1
+	ALLOC_S 
+	STORE_R %fp
+	ALLOC -1
+	JUMP_S 

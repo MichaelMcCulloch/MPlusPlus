@@ -1,6 +1,5 @@
-var b:bool;
-var x:int;
-b:= false;
-if b then x:= 10
-  else x:= 20;
-print x;
+var a[10][20]:int;
+
+a[2][3] := 7;
+
+print 1;

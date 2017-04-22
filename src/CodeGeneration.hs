@@ -99,53 +99,89 @@ transProg (I_PROG (funs, nVars, arrDesc, body)) = prog where
   prog = do
     b <- progBody
     f <- functions
-    return $ progStart ++ b ++ progEnd ++ f
+    arrs <- mapM (transArr nVars) arrDesc
+    return $ progStart ++ concat arrs ++ b ++ progEnd ++ f
   progStart = [ I (LOAD_R SP), -- put the stack pointer on the stack
                 I (LOAD_R SP),
                 I (STORE_R FP), -- and put it in the frame pointer
                 I (ALLOC nVars), -- alocate space for local variables
-                I (LOAD_I (fromIntegral (nVars + 2))) -- TODO this is probably wrong: init deallocation counter
+                I (LOAD_I (fromIntegral (-(nVars + 1)))) -- load the deallocation counter + 1 for stack pointer
                 ]++[] -- TODO allocate space for local arrays and update counter
   progBody = do
     body' <- mapM transBody body
     return $ concat body'
-  progEnd = [I (ALLOC (-nVars-1)), I HALT] --TODO deallocate stack !!! Use deallocation counter
+  progEnd = [ I (LOAD_R FP),
+              I (LOAD_O (nVars +1)),
+              I (ALLOC_S),
+              I HALT] --TODO deallocate stack !!! Use deallocation counter
   functions = do
     funs' <- mapM transFun funs
     return $ concat funs'
 
-{-TODO:
-  Allocate local Variable space
-  Deallocate Stack-}
+
+
+--TODO allocate array sizes
 transFun:: I_fbody -> State Int [Code]
 transFun (I_FUN (lbl,funs,nArgs,nLoc,varDesc,stmts)) = fun where
   fun = do
     body <- mapM transBody stmts
-    return $ initFun ++ concat body ++ endFun
+    funs <- mapM transFun funs
+    arrs <- mapM (transArr nLoc) varDesc
+    return $ initFun ++ concat arrs ++ concat body ++ endFun ++ concat funs
   initFun = [ L lbl (LOAD_R SP), I (STORE_R FP), --set frame pointer to top of the stack and set label
               I (ALLOC nLoc), -- allocate local storage
-              I (LOAD_I (fromIntegral (nLoc + 2))) -- init deallocation counter
+              I (LOAD_I (fromIntegral (-(nLoc + 2)))) -- init deallocation counter +2 for dynamic&static link
               ] ++ [] -- TODO allocate space for local arrays and update counter
   endFun = [I (LOAD_R FP), -- write return into first arg slot
             I (STORE_O (-(nArgs+3))),
             I (LOAD_R FP), -- write return pointer into second argument slot
-            I (LOAD_O 0),
+            I (LOAD_O 0), -- load return pointer onto stack
             I (LOAD_R FP),
             I (STORE_O (-(nArgs+2))),
             I (LOAD_R FP), -- deallocate local storage
-            I (LOAD_O (nLoc+1)),
-            I (APP NEG),
+            I (LOAD_O (nLoc+1)), --load deallocation counter
             I (ALLOC_S),
             I (STORE_R FP), -- restore old frame pointers
             I (ALLOC (-nArgs)), -- cleanup the argument storage leaving only the return value & pointer on stack
             I (JUMP_S)] -- return
 
+-- need to store size of each dimension in array description block
+transArr::Int -> (Int, [I_expr]) -> State Int [Code]
+transArr nLoc (i, dimDesc) = do
+  dims <- mapM transExpr dimDesc
+  let dealloc = nLoc + 1
+  return $  concat (reverse dims) ++ -- put all dimensions in header block
+            concat dims ++ -- adjust for array start location
+            replicate (length dimDesc - 1) (I (APP MUL)) ++
+            [ I (LOAD_R SP), -- array starts here
+              I (LOAD_R FP),
+              I (STORE_O i)] ++ -- make a pointer to the array
+            [ I (LOAD_R SP), -- duplicate top of stack
+              I (LOAD_O 0)] ++
+            [ I (LOAD_I (fromIntegral (length dimDesc))),
+              I (LOAD_R FP),
+              I (LOAD_O dealloc),
+              I (APP NEG),
+              I (APP ADD),
+              I (APP ADD),
+              I (APP NEG),
+              I (LOAD_R FP),
+              I (STORE_O dealloc),
+              I (ALLOC_S)]
+
+{-Column Major:
+  Note: array sizes are store at negative offsets from array pointer. array starts at 0, first dim is -1, etc-}
+accessArray::(Int, Int, [I_expr]) -> Bool -> State Int [Code]
+accessArray (lvl, off, arrayLocations) loadOrStore = do
+  let dims = length arrayLocations
+  exprs <- mapM transExpr arrayLocations
+  return undefined
+
+
+
 {-TODO:
   arrayDescriptions
-  while loop
-  conditional, with labels
-  cases
-  blocks-}
+  cases-}
 transBody:: I_stmt -> State Int [Code]
 transBody stmt = case stmt of
   I_ASS (lvl, off, arrDesc, expr) -> do
@@ -200,11 +236,28 @@ transBody stmt = case stmt of
     expr' <- transExpr expr
     return $ expr' ++ [I PRINT_C] -- evaluate expression, then print it
   I_RETURN expr -> transExpr expr
-  I_BLOCK (funs, nVars, varDesc, stmts) -> undefined --TODO
+  I_BLOCK (funs, nVars, varDesc, stmts) -> block where
+    dealloc = fromIntegral (-(nVars+3))
+    block = do
+      body <- mapM transBody stmts
+      funs <- mapM transFun funs
+      return $ initBlock ++ concat body ++ endBlock ++ concat funs
+    initBlock = [ I (LOAD_R FP),
+                  I (ALLOC 2),
+                  I (LOAD_R SP),
+                  I (STORE_R FP),
+                  I (ALLOC nVars),
+                  I (LOAD_I dealloc)] ++
+                  [] --TODO allocate local arrays
+    endBlock = [  I (LOAD_R FP), -- deallocate local storage
+                  I (LOAD_O (nVars+1)), --load deallocation counter
+                  I (ALLOC_S),
+                  I (STORE_R FP)]
 
 {-TODO:
   Array descriptions
   Pass by reference --verify
+  Cons
   Size-}
 transExpr:: I_expr -> State Int [Code]
 transExpr expr = case expr of

@@ -1,0 +1,34 @@
+	LOAD_R %sp
+	LOAD_R %sp
+	STORE_R %fp
+	ALLOC 1
+	LOAD_I -2
+	LOAD_I 20
+	LOAD_I 10
+	LOAD_I 10
+	LOAD_I 20
+	APP MUL
+	LOAD_R %sp
+	LOAD_R %fp
+	STORE_O 1
+	LOAD_R %sp
+	LOAD_O 0
+	LOAD_I 2
+	LOAD_R %fp
+	LOAD_O 2
+	APP NEG
+	APP ADD
+	APP ADD
+	APP NEG
+	LOAD_R %fp
+	STORE_O 2
+	ALLOC_S 
+	LOAD_I 7
+	LOAD_R %fp
+	STORE_O 1
+	LOAD_I 1
+	PRINT_I 
+	LOAD_R %fp
+	LOAD_O 2
+	ALLOC_S 
+	HALT 

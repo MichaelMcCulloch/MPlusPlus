@@ -2,7 +2,7 @@
 	LOAD_R %sp
 	STORE_R %fp
 	ALLOC 2
-	LOAD_I 4
+	LOAD_I -3
 	READ_I 
 	LOAD_R %fp
 	STORE_O 1
@@ -17,12 +17,12 @@
 	LOAD_R %cp
 	JUMP fn_1
 	PRINT_I 
-	ALLOC -3
+	ALLOC_S 
 	HALT 
 fn_1:	LOAD_R %sp
 	STORE_R %fp
 	ALLOC 1
-	LOAD_I 3
+	LOAD_I -3
 	LOAD_R %fp
 	LOAD_O -4
 	LOAD_I 0
@@ -59,7 +59,6 @@ end0:	ALLOC 0
 	STORE_O -3
 	LOAD_R %fp
 	LOAD_O 2
-	APP NEG
 	ALLOC_S 
 	STORE_R %fp
 	ALLOC -1
